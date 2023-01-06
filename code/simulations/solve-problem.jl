@@ -1,3 +1,5 @@
+using Revise
+
 includet("../functions/optim-functions.jl");
 includet("generate-landscape.jl");
 
@@ -5,7 +7,8 @@ using StatsPlots;
 plotlyjs()
 
 budget = 200;
-cvar_soln = fcn_optim_cvar(-Wps; budget = budget, λ=1);
+
+cvar_soln = pmap(l->fcn_optim_cvar(-Wps; budget = budget, λ=l), 0.0:0.25:1.0) |> e->mapreduce(permutedims, vcat, e);
 mv_soln = fcn_optim_mv(-Wps; budget = budget, λ=1);
 ev_soln = fcn_optim_ev(-Wps; budget = budget);
 soln = hcat(ev_soln, cvar_soln, mv_soln);

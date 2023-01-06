@@ -1,8 +1,8 @@
 
-using Gurobi, JuMP, Statistics, StatsBase
+using Gurobi, JuMP, Statistics, StatsBase, Distributed
 
 # Optimisation of conditional value-at-risk with JuMP
-function fcn_optim_cvar(Y; p = ones(size(Y,2),1)/size(Y,2), budget = 1, β = 0.9, λ = 1)
+function fcn_optim_cvar(Y; p = ones(size(Y,2),1)/size(Y,2), budget = 1, β = 0.9, λ::Float64 = 1.0)
     # Optimizes the conditional value-at-risk of a portfolio with N assets
     # Y: a N by K matrix, with K realisations of the uncertain vector of costs
     # p: probability of K events
