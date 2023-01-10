@@ -77,7 +77,7 @@ function fcn_spatial_shock(W, S::Integer, n_shocks, shock_size; p=ones(size(W,1)
             V[shock_cells,s] .= 1;
         end
     end
-    return V
+    return V;
 end
 
 function fcn_reshape_lds(D, dims)
