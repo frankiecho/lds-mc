@@ -97,4 +97,35 @@ function fcn_reshape_lds(D, dims)
     return reshape(D, dims_round);
 end
 
-function fcn_generate_landscape(dims, S, n_shocks, shock_size)
+function fcn_generate_landscape(dims=(40,40), S=(prod(dims)+1), yy=100, n_shocks=Poisson(1), shock_size=Poisson(20))
+    # Generates a (n1 x n2) grid cells of landscape describing benefits of protecting each cell, with random shocks that wipe out returns in a given set of cells under every scenario.
+
+    # dims: dimensions of the landscape grid
+    # S: number of scenarios to generate
+    # yy: quantity to add to average returns from the spatial AR process
+    # n_shock: a statistical distribution describing the number of shocks in each scenarios
+    # shock_size: a statistical distribution describing the number of cells affected by a shock
+
+    #   Wps: benefits after shocks (for S scenarios)
+    #   Wp: spatially-autocorrelated "base" benefits
+    #   SS: shock locations
+    #   pw_rs: probability of shock (spatially-autocorrelated)
+
+    W, P, b = fcn_spatial_weights(dims; boundary = 1, distance = true, bandwidth = 20,  α=2);
+    X    = rand(Normal(), size(W,1));
+    Wp   = fcn_spatial_AR(W, S; X = X, ρ=0.5, σ=10) .+ yy;
+    Wp = Wp[b .== 0, :];
+    Wp[Wp .< 0] .= 0;
+
+    pw   = fcn_spatial_AR(W, 1; X = rand(size(W,1),1), ρ=0.5, σ=5) |> vec; # Probability of shock
+    pw   = pw[b .== 0,:];
+    pw[pw .< 0] .= 0;
+    pw   = pw ./ sum(pw);
+    SS, nss, sl   = fcn_spatial_shock(W[b .== 0, b .== 0], S, n_shocks, shock_size, p=vec(pw));
+    Wps  = copy(Wp);
+    Wps[isless.(1e-5,SS)] .= 0;
+
+    pw_rs = fcn_reshape_lds(pw, dims);
+
+    return Wps, Wp, SS, pw_rs;
+end

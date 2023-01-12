@@ -1,6 +1,8 @@
 
 using Gurobi, JuMP, Statistics, StatsBase, Distributed, CovarianceEstimation
 
+global GRB_ENV = Gurobi.Env();
+
 # Optimisation of conditional value-at-risk with JuMP
 function fcn_optim_cvar(Y; p = ones(size(Y,2),1)/size(Y,2), budget = 1, β = 0.9, λ::Float64 = 1.0)
     # Optimizes the conditional value-at-risk of a portfolio with N assets
@@ -16,7 +18,7 @@ function fcn_optim_cvar(Y; p = ones(size(Y,2),1)/size(Y,2), budget = 1, β = 0.9
     end
     μ = Y*p;
 
-    model = Model(Gurobi.Optimizer);
+    model = Model(() -> Gurobi.Optimizer(GRB_ENV));
     set_silent(model);
     @variable(model,0 <= x[1:N] <= 1);
     @variable(model, α);
@@ -35,7 +37,7 @@ function fcn_optim_mv(Y; budget = 1, λ = 1, p = ones(size(Y,2),1)/size(Y,2))
     N, K = size(Y);
     Q = StatsBase.cov(Y',p); # Weighted covariance
     μ = Y*p;
-    portfolio = Model(Gurobi.Optimizer);
+    portfolio = Model(() -> Gurobi.Optimizer(GRB_ENV));
     set_silent(portfolio)
     @variable(portfolio, 0 <= x[1:N] <= 1)
     if (λ==0)
@@ -64,7 +66,7 @@ function fcn_optim_mstd(Y; budget = 1, λ = 1, p = ones(size(Y,2),1)/size(Y,2))
         G_cholesky = cholesky(Q_shrink);
         G = G_cholesky.L;
     end
-    portfolio = Model(Gurobi.Optimizer);
+    portfolio = Model(() -> Gurobi.Optimizer(GRB_ENV));
     set_silent(portfolio)
     @variable(portfolio, 0 <= x[1:N] <= 1)
     @variable(portfolio, s)
@@ -87,7 +89,7 @@ function fcn_optim_ev(Y; p = ones(size(Y,2),1)/size(Y,2), budget = 1)
     N, K = size(Y);
     μ = Y*p;
 
-    model = Model(Gurobi.Optimizer);
+    model = Model(() -> Gurobi.Optimizer(GRB_ENV));
     set_silent(model);
     @variable(model,0 <= x[1:N] <= 1);
     @objective(model, Min, sum(μ' * x))

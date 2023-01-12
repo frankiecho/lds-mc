@@ -6,7 +6,7 @@ includet("generate-landscape.jl");
 
 using StatsPlots;
 plotlyjs()
-theme(:juno)
+theme(:ggplot)
 
 budget = 100;
 map_ef = (f,lambda_vec,R) -> pmap(l->f(-R; budget = budget, λ=l),lambda_vec) |> e->mapreduce(permutedims, vcat, e) |> transpose;
@@ -43,9 +43,21 @@ cvar_ce_max_crra = map(γ -> find_max_γ(γ, cvar_returns), α_vec);
 mstd_pl_max = map(α -> find_max_u_pl(α, mstd_returns), α_vec);
 cvar_pl_max = map(α -> find_max_u_pl(α, cvar_returns), α_vec);
 
-plot(α_vec, [mstd_pl_max, cvar_pl_max], labels = ["M-SD" "M-CVaR"])
-plot(α_vec, [mstd_ce_max, cvar_ce_max], labels = ["M-SD" "M-CVaR"])
-plot(α_vec, [mstd_ce_max_crra, cvar_ce_max_crra], labels = ["M-SD" "M-CVaR"])
+pl_plot = plot(α_vec, [mstd_pl_max, cvar_pl_max], labels = ["M-SD" "M-CVaR"], xlabel = "q", ylabel = "Certainty Equivalent"; dpi =600, size=(750,750))
+cara_plot = plot(α_vec, [mstd_ce_max, cvar_ce_max], labels = ["M-SD" "M-CVaR"], xlabel = "α", ylabel = "Certainty Equivalent"; dpi =600, size=(750,750))
+crra_plot = plot(α_vec, [mstd_ce_max_crra, cvar_ce_max_crra], labels = ["M-SD" "M-CVaR"], xlabel = "γ", ylabel = "Certainty Equivalent"; dpi =600, size=(750,750))
+
+savefig(pl_plot, "./plots/pl_ce.pdf")
+savefig(cara_plot, "./plots/pl_cara.pdf")
+savefig(crra_plot, "./plots/pl_crra.pdf")
+
+
+# Number of times the solution selects a location with a shock
+mstd_pshock = mapslices(w->sum(w)/size(SS,2), (SS' * mstd_soln) .> 5; dims = 1)'
+cvar_pshock = mapslices(w->sum(w)/size(SS,2), (SS' * cvar_soln) .> 5; dims = 1)'
+
+pshock_plot = plot(lambda_vec, [mstd_pshock, cvar_pshock], labels = ["M-SD" "M-CVaR"]; dpi = 600, size = (750,500))
+savefig(pshock_plot, "./plots/pshock_plot.png")
 
 
 α = 4;
