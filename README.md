@@ -1,1 +1,2 @@
-# lds-mc-julia
+# Monte Carlo simulations for Landscape Decisions in Julia
+
