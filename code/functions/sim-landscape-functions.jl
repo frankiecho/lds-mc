@@ -6,20 +6,20 @@ function fcn_meshgrid(x,y)
     return(X,Y)
 end
 
-function fcn_spatial_weights(dims = (5,5); order = 1, queen = true, distance = false, bandwidth = 1)
+function fcn_spatial_weights(dims = (5,5); boundary::Integer = 0, order = 1, queen = true, distance = false, bandwidth = 1, α=1)
     # Generates spatial weights matrices based on contiguity
     # dims: 2d vector of the number of x and y dimensions
-
-    x = 1:dims[1];
-    y = 1:dims[2];
+    dims_boundary = dims .+ (boundary*2);
+    x = 1:(dims_boundary[1]);
+    y = 1:(dims_boundary[2]);
     X,Y = fcn_meshgrid(x,y);
     Xl = reshape(X, :, 1)';
     Yl = reshape(Y, :, 1)';
-    P = spzeros(prod(dims), prod(dims));
-    for i = 1:prod(dims)
+    P = spzeros(prod(dims_boundary), prod(dims_boundary));
+    for i = 1:prod(dims_boundary)
         if (distance) 
             dij = sqrt.((Xl.-Xl[i]).^2 .+ (Yl.-Yl[i]).^2);
-            k = dij.^(-1); # Inverse distance
+            k = dij.^(-α); # Inverse distance
             k[i] = 0;
             k[dij .> bandwidth] .= 0;
             P[:,i] = k';
@@ -35,11 +35,11 @@ function fcn_spatial_weights(dims = (5,5); order = 1, queen = true, distance = f
     P[diagind(P)] .= 0;
 
     W = spzeros(size(P));
-    for i = 1:prod(dims)
+    for i = 1:prod(dims_boundary)
         W[i,:] = P[i,:] / sum(P[i,:]);
     end
-    boundary = isequal.(Xl, 1) .| isequal.(Xl, dims[1]) .| isequal.(Yl, 1) .| isequal.(Yl, dims[2])
-    return W, P, boundary
+    boundary_id = ((Xl .<= boundary) .| (Xl .> (dims[1]+boundary)) .| (Yl .<= boundary) .| (Yl .> (dims[2]+boundary))) |> vec;
+    return W, P, boundary_id;
 end
 
 function fcn_spatial_AR(W, S=1; X=rand(size(W,1),1), β=1, ρ=0, γ=0, θ=0, σ=1)
@@ -64,23 +64,37 @@ end
 function fcn_spatial_shock(W, S::Integer, n_shocks, shock_size; p=ones(size(W,1))/size(W,1))
     N = size(W,1);
     V = zeros(N,S);
+    NSS = zeros(S);
+    sl = Array{Vector}(undef, S, 1)
     for s=1:S
         nss = rand(n_shocks); # Sample number of shocks from distribution n_shocks
         shock_loc = wsample(1:N, p, nss; replace = false);
         for i=shock_loc
             sss = rand(shock_size); # Sample shock size from distribution
-            neighbours = vec(W[i,:]);
-            neighbours[i] = 0;
-            w = Vector(neighbours);
-            shock_cells = wsample(1:length(neighbours), w, sss-1; replace = false);
+            if (sss == 0)
+                continue
+            elseif (sss == 1)
+                V[i,s] = 1;
+                continue
+            end
+
+            w = vec(W[:,i]);
+            subset_index = w .> 0;
+            neighbour_index = (1:length(w))[subset_index];
+            wv = w[subset_index];
+            shock_cells = wsample(neighbour_index, wv, sss-1; replace = false);
             push!(shock_cells, i);
             V[shock_cells,s] .= 1;
         end
+        NSS[s] = nss;
+        sl[s] = shock_loc;
     end
-    return V;
+    return V, NSS, sl;
 end
 
 function fcn_reshape_lds(D, dims)
     dims_round = round.(dims);
     return reshape(D, dims_round);
 end
+
+function fcn_generate_landscape(dims, S, n_shocks, shock_size)
