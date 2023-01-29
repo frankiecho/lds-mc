@@ -1,7 +1,7 @@
 using Revise, DataFrames, CSV, Distributed, Glob, Random
-
-Distributed.addprocs(length(Sys.cpu_info()))
-#@everywhere begin    
+S = 1:8;
+Distributed.addprocs(min(length(Sys.cpu_info()),maximum(S)))
+@everywhere begin
 include("../functions/type-defs.jl")
 include("../functions/optim-functions.jl")
 include("../functions/expected-utility-functions.jl")
@@ -14,7 +14,7 @@ budget = 100;
 Random.seed!(123456)
 
 function fcn_mc_sim()
-    L = fcn_generate_landscape(yy = 10);
+    L = fcn_generate_landscape((15,15), yy = 10);
     ev_soln = fcn_optim_ev(-L.R; budget = budget);
     ev_rv_soln = fcn_optim_ev(-L.RV; budget = budget);
     ev_ef = EfficiencyFrontier(ev_soln, L.R' * ev_soln, [0], fcn_optim_ev);
@@ -41,11 +41,11 @@ function fcn_mc_sim()
 
     return MCResult(ef, ce, ce_max)
 end
-#end
+end
 
-S = 1:1;
 
-result = map(fcn_mc_sim(), S)
+
+result = pmap(i -> fcn_mc_sim(), S)
 
 ev = @pipe [result[i].ce_max.ev for i=S] |> mapreduce(permutedims, vcat, _);
 ev_rv = @pipe [result[i].ce_max.ev_rv for i=S] |> mapreduce(permutedims, vcat, _);

@@ -96,7 +96,7 @@ function fcn_optim_ev(Y; p = ones(size(Y,2),1)/size(Y,2), budget = 1)
     @constraint(model, sum(x) == budget);
     optimize!(model);
     obj_val = round.(μ'*value.(x));
-    println("EV model solved with μ=$(obj_val)" )
+    #println("EV model solved with μ=$(obj_val)" )
     return(value.(x));
 end
 
