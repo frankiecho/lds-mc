@@ -1,7 +1,7 @@
 # Functions to simulate returns in a randomly generated landscape
-using SparseArrays, LinearAlgebra, Plots, Random, Distributions, Revise
-includet("type-defs.jl")
-includet("optim-functions.jl")
+using SparseArrays, LinearAlgebra, Random, Distributions, Revise
+include("type-defs.jl")
+include("optim-functions.jl")
 
 function fcn_meshgrid(x,y)
     X = x' .* ones(y[end]);

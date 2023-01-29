@@ -1,10 +1,14 @@
-using Revise, Plots, StatsPlots, RCall, DataFrames, CSV
-includet("../functions/sim-landscape-functions.jl")
+using Revise, DataFrames, CSV, Distributed, Glob, Random
 
-plotlyjs()
+Distributed.addprocs(length(Sys.cpu_info()))
+#@everywhere begin    
+include("../functions/type-defs.jl")
+include("../functions/optim-functions.jl")
+include("../functions/expected-utility-functions.jl")
+include("../functions/sim-landscape-functions.jl")
 
 α = 0:0.1:50
-λ = 0:0.02:1
+λ = 0:0.2:1
 budget = 100;
 
 Random.seed!(123456)
@@ -37,10 +41,11 @@ function fcn_mc_sim()
 
     return MCResult(ef, ce, ce_max)
 end
+#end
 
-S = 1:100;
+S = 1:1;
 
-result = pmap(fcn_mc_sim(), S)
+result = map(fcn_mc_sim(), S)
 
 ev = @pipe [result[i].ce_max.ev for i=S] |> mapreduce(permutedims, vcat, _);
 ev_rv = @pipe [result[i].ce_max.ev_rv for i=S] |> mapreduce(permutedims, vcat, _);
