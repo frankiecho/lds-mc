@@ -20,7 +20,7 @@
 
         model = Model(() -> Gurobi.Optimizer(GRB_ENV));
         set_silent(model);
-        set_optimizer_attribute(model, "Threads", 1);
+        #set_optimizer_attribute(model, "Threads", 1);
         @variable(model,0 <= x[1:N] <= 1);
         @variable(model, α);
         @variable(model, u[1:K] >= 0);
@@ -40,7 +40,7 @@
         μ = Y*p;
         portfolio = Model(() -> Gurobi.Optimizer(GRB_ENV));
         set_silent(portfolio)
-        set_optimizer_attribute(portfolio, "Threads", 1);
+        #set_optimizer_attribute(portfolio, "Threads", 1);
 
         @variable(portfolio, 0 <= x[1:N] <= 1)
         if (λ==0)
@@ -71,7 +71,7 @@
         end
         portfolio = Model(() -> Gurobi.Optimizer(GRB_ENV));
         set_silent(portfolio)
-        set_optimizer_attribute(portfolio, "Threads", 1);
+        #set_optimizer_attribute(portfolio, "Threads", 1);
         @variable(portfolio, 0 <= x[1:N] <= 1)
         @variable(portfolio, s)
         @objective(portfolio, Min, (1-λ)*sum(μ' * x) + λ * s)

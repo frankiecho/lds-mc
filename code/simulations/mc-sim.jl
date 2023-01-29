@@ -1,18 +1,15 @@
-using Revise, DataFrames, Glob, Random, Pipe, ProgressMeter, ThreadsX, Distributed
-addprocs(36);
+using Revise, DataFrames, Glob, Random, Pipe, ProgressMeter, ThreadsX
 Random.seed!(123456)
-@everywhere begin
-    using Random
-    S = 1:100;
-    include("../functions/type-defs.jl")
-    include("../functions/optim-functions.jl");
-    include("../functions/expected-utility-functions.jl")
-    include("../functions/sim-landscape-functions.jl")
-    α = 0:0.1:50
-    λ = 0:0.02:1
-    budget = 100;
-end
-@everywhere function fcn_mc_sim(i)
+using Random
+S = 1:100;
+include("../functions/type-defs.jl")
+include("../functions/optim-functions.jl");
+include("../functions/expected-utility-functions.jl")
+include("../functions/sim-landscape-functions.jl")
+α = 0:0.1:50
+λ = 0:0.02:1
+budget = 100;
+function fcn_mc_sim(i)
     L = fcn_generate_landscape(yy = 10);
     ev_soln = fcn_optim_ev(-L.R; budget = budget);
     ev_rv_soln = fcn_optim_ev(-L.RV; budget = budget);
@@ -38,10 +35,11 @@ end
     mstd_ce_max = map(summary_func, mstd_ce);
     ce_max = Result(ev_ce_max, ev_rv_ce_max, cvar_ce_max, mstd_ce_max)
 
+    println("Completed run $(i)")
     return MCResult(ef, ce, ce_max)
 end
 
-result = pmap(fcn_mc_sim, S);
+result = map(i -> fcn_mc_sim(i), S);
 
 ev = @pipe [result[i].ce_max.ev for i=S] |> mapreduce(permutedims, vcat, _);
 ev_rv = @pipe [result[i].ce_max.ev_rv for i=S] |> mapreduce(permutedims, vcat, _);

@@ -143,7 +143,7 @@ end
 
 function fcn_map_ef(R::Matrix, optim_func::Function, budget::Real=100, λ::AbstractVector=0:0.1:1)
     # Maps a given function to identify the efficiency frontier across λ values
-    solutions = ThreadsX.map(l->optim_func(-R; budget = budget, λ=l),λ) |> e->mapreduce(permutedims, vcat, e) |> transpose
+    solutions = map(l->optim_func(-R; budget = budget, λ=l),λ) |> e->mapreduce(permutedims, vcat, e) |> transpose
     RS = R' * solutions;
     ef = EfficiencyFrontier(solutions, RS, λ, optim_func);
     return ef
