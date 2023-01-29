@@ -7,7 +7,7 @@ function CARA_inv(u, α=0.0)
     if α==0.0
         return u
     else
-        return -log.(1 .- u) ./ α;
+        return -log.(1 .- α .* u) ./ α;
     end
 end
 
@@ -17,7 +17,7 @@ function CRRA(w, θ=1.0)
 end
 
 function CRRA_inv(u, θ=1.0)
-    w = θ==1 ? exp.(u) : ((1-θ).*u)^(1 ./(1-θ));
+    w = θ==1 ? exp.(u) : ((1-θ).*u).^(1 ./(1-θ));
     return w
 end
 
@@ -41,3 +41,4 @@ function EU(W, f, p = ones(size(W,1))/size(W,1))
     EU = U' * p;
     return EU
 end
+

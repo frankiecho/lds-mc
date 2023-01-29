@@ -35,11 +35,9 @@ q, s = findmax(nss);
 fcn_plot_heatmap(Wp[:,s]) |> f->savefig(f,"plots/Wp.png");
 fcn_plot_heatmap(SS[:,s]) |> f->savefig(f,"plots/SS.png");
 fcn_plot_heatmap(Wps[:,s]) |> f->savefig(f,"plots/Wps.png");
-=======
 fcn_plot_heatmap = D -> D |> (x->fcn_reshape_lds(x, dims)) |> heatmap;
 s = 10;
 fcn_plot_heatmap(Wp[:,s])
 fcn_plot_heatmap(SS[:,s])
 fcn_plot_heatmap(Wps[:,s])
-#fcn_plot_heatmap(Vector(W[:,500]))
->>>>>>> Stashed changes
+#fcn_plot_heatmap(Vector(W[:,500]);
