@@ -3,7 +3,7 @@
 using Revise
 includet("expected-utility-functions.jl")
 
-mutable struct Landscape
+struct Landscape
     # Two dimensional landscape over N scenarios
     dims::Tuple # Dimensions (n1 x n2)
     R::Matrix # Returns (including shock)
@@ -12,7 +12,7 @@ mutable struct Landscape
     P::Matrix # Probability of shock
 end
 
-mutable struct UtilityFunction
+struct UtilityFunction
     # Defines a von-Neumann Morgenstern utility function that scales inputs based on location and scale
     type::String
     α::Real
@@ -42,21 +42,21 @@ mutable struct UtilityFunction
     end
 end
 
-mutable struct EfficiencyFrontier
+struct EfficiencyFrontier
     solutions::AbstractArray
     returns::AbstractArray # Returns for each solution under each scenario
     λ::AbstractVector
     f::Function 
 end
 
-mutable struct Result
+struct Result
     ev::Any
     ev_rv::Any # EV optimisation without shocks
     cvar::Any
     mstd::Any
 end
 
-mutable struct MCResult
+struct MCResult
     ef::Result # Efficiency Frontier
     ce::Result # Certainty equivalents
     ce_max::Result # Certainty equivalents (with maximised λ)

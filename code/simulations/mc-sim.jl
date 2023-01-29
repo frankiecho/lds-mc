@@ -1,20 +1,19 @@
-using Revise, DataFrames, CSV, Distributed, Glob, Random
-S = 1:8;
-Distributed.addprocs(min(length(Sys.cpu_info()),maximum(S)))
-@everywhere begin
-include("../functions/type-defs.jl")
-include("../functions/optim-functions.jl")
-include("../functions/expected-utility-functions.jl")
-include("../functions/sim-landscape-functions.jl")
-
-α = 0:0.1:50
-λ = 0:0.2:1
-budget = 100;
-
+using Revise, DataFrames, Glob, Random, Pipe, ProgressMeter, ThreadsX, Distributed
+addprocs(36);
 Random.seed!(123456)
-
-function fcn_mc_sim()
-    L = fcn_generate_landscape((15,15), yy = 10);
+@everywhere begin
+    using Random
+    S = 1:100;
+    include("../functions/type-defs.jl")
+    include("../functions/optim-functions.jl");
+    include("../functions/expected-utility-functions.jl")
+    include("../functions/sim-landscape-functions.jl")
+    α = 0:0.1:50
+    λ = 0:0.02:1
+    budget = 100;
+end
+@everywhere function fcn_mc_sim(i)
+    L = fcn_generate_landscape(yy = 10);
     ev_soln = fcn_optim_ev(-L.R; budget = budget);
     ev_rv_soln = fcn_optim_ev(-L.RV; budget = budget);
     ev_ef = EfficiencyFrontier(ev_soln, L.R' * ev_soln, [0], fcn_optim_ev);
@@ -41,11 +40,8 @@ function fcn_mc_sim()
 
     return MCResult(ef, ce, ce_max)
 end
-end
 
-
-
-result = pmap(i -> fcn_mc_sim(), S)
+result = pmap(fcn_mc_sim, S);
 
 ev = @pipe [result[i].ce_max.ev for i=S] |> mapreduce(permutedims, vcat, _);
 ev_rv = @pipe [result[i].ce_max.ev_rv for i=S] |> mapreduce(permutedims, vcat, _);
