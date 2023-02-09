@@ -1,7 +1,12 @@
+using Distributed;
+
+addprocs(35);
+
+@everywhere begin
 using Revise, DataFrames, Glob, Random, Pipe, ProgressMeter, CSV
 Random.seed!(123456)
 using Random
-S = 1:100;
+S = 1:35;
 include("../functions/type-defs.jl")
 include("../functions/optim-functions.jl");
 include("../functions/expected-utility-functions.jl")
@@ -9,8 +14,9 @@ include("../functions/sim-landscape-functions.jl")
 α = 0:0.1:50
 λ = 0:0.02:1
 budget = 100;
-function fcn_mc_sim(i)
-    L = fcn_generate_landscape(yy = 10);
+
+function fcn_mc_sim(i, n_shocks = Poisson(1))
+    L = fcn_generate_landscape((10,10), yy = 10, n_shocks=n_shocks, shock_size=Poisson(1));
     ev_soln = fcn_optim_ev(-L.R; budget = budget);
     ev_rv_soln = fcn_optim_ev(-L.RV; budget = budget);
     ev_ef = EfficiencyFrontier(ev_soln, L.R' * ev_soln, [0], fcn_optim_ev);
@@ -38,9 +44,9 @@ function fcn_mc_sim(i)
     println("Completed run $(i)")
     return MCResult(ef, ce, ce_max)
 end
+end
 
-result = map(i -> fcn_mc_sim(i), S);
-
+function fcn_write_result(result::AbstractArray, suffix = "")
 ev = @pipe [result[i].ce_max.ev for i=S] |> mapreduce(permutedims, vcat, _);
 ev_rv = @pipe [result[i].ce_max.ev_rv for i=S] |> mapreduce(permutedims, vcat, _);
 cvar = @pipe [result[i].ce_max.cvar for i=S] |> mapreduce(permutedims, vcat, _);
@@ -56,4 +62,14 @@ rename!(result_df, [:ev,:cvar, :mstd, :cvar_mstd])
 
 result_df.var = vcat(repeat(["median"], length(α)), repeat(["lb"], length(α)), repeat(["ub"], length(α)));
 result_df.alpha = repeat(α, 3)
-CSV.write("output/ce_df.csv", result_df)
+CSV.write("output/ce_df" * suffix * ".csv", result_df)
+end
+
+result = pmap(i -> fcn_mc_sim(i), S);
+fcn_write_result(result, "_baseline");
+
+result_no_risk = pmap(i -> fcn_mc_sim(i, Normal(0,0)), S);
+fcn_write_result(result_no_risk, "_no_risk"); 
+
+result_high_risk = pmap(i -> fcn_mc_sim(i, Poisson(5)), S);
+fcn_write_result(result_high_risk, "_high_risk");

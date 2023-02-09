@@ -70,9 +70,9 @@ function fcn_spatial_shock(W, S::Integer, n_shocks, shock_size; p=ones(size(W,1)
     sl = Array{Vector}(undef, S, 1)
     for s=1:S
         nss = rand(n_shocks); # Sample number of shocks from distribution n_shocks
-        shock_loc = wsample(1:N, p, nss; replace = false);
+        shock_loc = wsample(1:N, p, round(Int, nss); replace = false);
         for i=shock_loc
-            sss = rand(shock_size); # Sample shock size from distribution
+            sss = round(Int, rand(shock_size)); # Sample shock size from distribution
             if (sss == 0)
                 continue
             elseif (sss == 1)
