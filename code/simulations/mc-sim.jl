@@ -6,7 +6,7 @@ addprocs(35);
 using Revise, DataFrames, Glob, Random, Pipe, ProgressMeter, CSV
 Random.seed!(123456)
 using Random
-S = 1:35;
+S = 1:100;
 include("../functions/type-defs.jl")
 include("../functions/optim-functions.jl");
 include("../functions/expected-utility-functions.jl")
@@ -16,7 +16,8 @@ include("../functions/sim-landscape-functions.jl")
 budget = 100;
 
 function fcn_mc_sim(i, n_shocks = Poisson(1))
-    L = fcn_generate_landscape((10,10), yy = 10, n_shocks=n_shocks, shock_size=Poisson(1));
+    L = fcn_generate_landscape(yy = 10, n_shocks = n_shocks)
+    #L = fcn_generate_landscape((10,10), yy = 10, n_shocks=n_shocks, shock_size=Poisson(1));
     ev_soln = fcn_optim_ev(-L.R; budget = budget);
     ev_rv_soln = fcn_optim_ev(-L.RV; budget = budget);
     ev_ef = EfficiencyFrontier(ev_soln, L.R' * ev_soln, [0], fcn_optim_ev);
