@@ -1,21 +1,25 @@
-using Distributed;
+using Distributed, JLD2;
 
 addprocs(35);
+@everywhere using ParallelDataTransfer, Gurobi
+#GRB_ENV = Gurobi.Env(); sendto(workers(),GRB_ENV=GRB_ENV);
 
 @everywhere begin
 using Revise, DataFrames, Glob, Random, Pipe, ProgressMeter, CSV
 Random.seed!(123456)
 using Random
 S = 1:100;
+GRB_ENV = Gurobi.Env();
 include("../functions/type-defs.jl")
 include("../functions/optim-functions.jl");
 include("../functions/expected-utility-functions.jl")
 include("../functions/sim-landscape-functions.jl")
 α = 0:0.1:50
-λ = 0:0.02:1
+λ = 0:0.005:1
 budget = 100;
 
 function fcn_mc_sim(i, n_shocks = Poisson(1))
+
     L = fcn_generate_landscape(yy = 10, n_shocks = n_shocks)
     #L = fcn_generate_landscape((10,10), yy = 10, n_shocks=n_shocks, shock_size=Poisson(1));
     ev_soln = fcn_optim_ev(-L.R; budget = budget);
@@ -74,3 +78,5 @@ fcn_write_result(result_no_risk, "_no_risk");
 
 result_high_risk = pmap(i -> fcn_mc_sim(i, Poisson(5)), S);
 fcn_write_result(result_high_risk, "_high_risk");
+
+jldsave("output/result.jld2"; result, result_no_risk, result_high_risk)
