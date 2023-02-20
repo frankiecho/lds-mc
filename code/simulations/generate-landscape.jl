@@ -4,7 +4,7 @@ includet("../functions/sim-landscape-functions.jl")
 Random.seed!(1234);
 dims = (40,40);
 S = prod(dims) + 1;
-n_shocks = Poisson(1);
+n_shocks = 50;
 shock_size = Poisson(20);
 yy = 200;
 

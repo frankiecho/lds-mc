@@ -63,14 +63,24 @@ function fcn_spatial_AR(W, S=1; X=rand(size(W,1),1), β=1, ρ=0, γ=0, θ=0, σ=
     return Y;
 end
 
-function fcn_spatial_shock(W, S::Integer, n_shocks, shock_size; p=ones(size(W,1))/size(W,1))
+function fcn_spatial_shock(W, S::Integer, n_shocks::Int, shock_size; p=ones(size(W,1))/size(W,1))
     N = size(W,1);
     V = zeros(N,S);
     NSS = zeros(S);
     sl = Array{Vector}(undef, S, 1)
     for s=1:S
-        nss = rand(n_shocks); # Sample number of shocks from distribution n_shocks
-        shock_loc = wsample(1:N, p, round(Int, nss); replace = false);
+        #nss = rand(n_shocks); # Sample number of shocks from distribution n_shocks
+        #shock_loc = wsample(1:N, p, round(Int, nss); replace = false);
+
+        # Draw using a uniform distribution of independent draws with underlying probability
+        shock = rand(N) .< p;
+        nss = sum(shock);
+        shock_loc = findall(x -> x .> 0, shock)
+        if nss > n_shocks
+            shock_loc = sample(shock_loc, n_shocks; replace = false)
+            nss = n_shocks
+        end
+        
         for i=shock_loc
             sss = round(Int, rand(shock_size)); # Sample shock size from distribution
             if (sss == 0)
