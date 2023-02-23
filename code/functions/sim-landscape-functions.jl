@@ -104,12 +104,50 @@ function fcn_spatial_shock(W, S::Integer, n_shocks::Int, shock_size; p=ones(size
     return V, NSS, sl;
 end
 
+function fcn_spatial_shock_gev(W, S::Integer; p=1/size(W,1), scale=20)
+    N = size(W,1);
+    V = zeros(N,S);
+    NSS = zeros(S);
+    sl = Array{Vector}(undef, S, 1)
+
+    threshold = quantile(Normal(), 1-p); # Threshold of exceedance from inverse CDF of normal distribution
+
+    for s=1:S
+        # Draw using a uniform distribution of independent draws with underlying probability
+        ζ = rand(Normal(), N);
+        nss = sum(ζ .> threshold);
+        shock_loc = findall(x -> x .> threshold, ζ)
+        
+        for i=shock_loc
+            sss = Int(ceil(ζ[i] * scale)); # Sample shock size from distribution
+            if (sss == 0)
+                continue
+            elseif (sss == 1)
+                V[i,s] = 1;
+                continue
+            end
+
+            w = vec(W[:,i]);
+            subset_index = w .> 0;
+            neighbour_index = (1:length(w))[subset_index];
+            wv = w[subset_index];
+            shock_cells = wsample(neighbour_index, wv, sss-1; replace = false);
+            push!(shock_cells, i);
+            V[shock_cells,s] .= 1;
+        end
+        NSS[s] = nss;
+        sl[s] = shock_loc;
+    end
+    return V, NSS, sl;
+end
+
+
 function fcn_reshape_lds(D, dims)
     dims_round = round.(dims);
     return reshape(D, dims_round);
 end
 
-function fcn_generate_landscape(dims=(40,40); S=(prod(dims)+1), yy=100, n_shocks=Poisson(1), shock_size=Poisson(20))
+function fcn_generate_landscape(dims=(40,40); S=(prod(dims)+1), yy=100, n_shocks=1000, shock_size=Poisson(20))
     # Generates a (n1 x n2) grid cells of landscape describing benefits of protecting each cell, with random shocks that wipe out returns in a given set of cells under every scenario.
 
     # dims: dimensions of the landscape grid
@@ -126,6 +164,7 @@ function fcn_generate_landscape(dims=(40,40); S=(prod(dims)+1), yy=100, n_shocks
     W, P, b = fcn_spatial_weights(dims; boundary = 1, distance = true, bandwidth = 20,  α=2);
     X    = rand(Normal(), size(W,1));
     Wp   = fcn_spatial_AR(W, S; X = X, ρ=0.5, σ=10) .+ yy;
+    #Wp   = fcn_spatial_AR(W, S; X = X, γ=0.9, θ=0.2, σ=1) .+ yy;
     Wp = Wp[b .== 0, :];
     Wp[Wp .< 0] .= 0;
 
@@ -133,13 +172,14 @@ function fcn_generate_landscape(dims=(40,40); S=(prod(dims)+1), yy=100, n_shocks
     pw   = pw[b .== 0,:];
     pw[pw .< 0] .= 0;
     pw   = pw ./ sum(pw);
-    SS, nss, sl   = fcn_spatial_shock(W[b .== 0, b .== 0], S, n_shocks, shock_size, p=vec(pw));
+    #SS, nss, sl   = fcn_spatial_shock(W[b .== 0, b .== 0], S, n_shocks, shock_size, p=vec(pw));
+    SS, nss, sl   = fcn_spatial_shock_gev(W[b .== 0, b .== 0], S)
     Wps  = copy(Wp);
     Wps[isless.(1e-5,SS)] .= 0;
 
     pw_rs = fcn_reshape_lds(pw, dims);
 
-    return Landscape(dims, Wps, Wp, SS, pw_rs);
+    return Landscape(dims, Wps, Wp, SS, pw_rs, nss);
 end
 
 function fcn_get_location_scale(R::Matrix, budget::Real=100, pct_range = (5,95)) 
