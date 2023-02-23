@@ -10,6 +10,7 @@ struct Landscape
     RV::Matrix # Returns (without shock)
     SS::Matrix # Shock location (binary)
     P::Matrix # Probability of shock
+    nss::Vector # Number of shocks
 end
 
 struct UtilityFunction

@@ -1,21 +1,25 @@
-using Distributed, JLD2;
+using Distributed, JLD2
 
-addprocs(1);
-@everywhere using Gurobi
+#addprocs(1);
+#@everywhere using Gurobi
+using Gurobi
+
 #GRB_ENV = Gurobi.Env(); sendto(workers(),GRB_ENV=GRB_ENV);
 
-@everywhere begin
+#@everywhere begin
 using Revise, DataFrames, Glob, Random, Pipe, ProgressMeter, CSV
 Random.seed!(123456)
 using Random
 S = 1:10;
+cd("/Users/frankiecho/Documents/Github/lds-mc-julia/code/simulations/")
+
 GRB_ENV = Gurobi.Env();
 include("../functions/type-defs.jl")
 include("../functions/optim-functions.jl");
 include("../functions/expected-utility-functions.jl")
 include("../functions/sim-landscape-functions.jl")
 α = 0:0.1:50
-λ = 0:0.005:1
+λ = 0:0.2:1
 budget = 100;
 
 function fcn_mc_sim(i, n_shocks=100)
@@ -48,29 +52,33 @@ function fcn_mc_sim(i, n_shocks=100)
     println("Completed run $(i)")
     return MCResult(ef, ce, ce_max)
 end
-end
+#end
 
 function fcn_write_result(result::AbstractArray, suffix = "")
-ev = @pipe [result[i].ce_max.ev for i=S] |> mapreduce(permutedims, vcat, _);
-ev_rv = @pipe [result[i].ce_max.ev_rv for i=S] |> mapreduce(permutedims, vcat, _);
-cvar = @pipe [result[i].ce_max.cvar for i=S] |> mapreduce(permutedims, vcat, _);
-mstd = @pipe [result[i].ce_max.mstd for i=S] |> mapreduce(permutedims, vcat, _);
+    ev = @pipe [result[i].ce_max.ev for i=S] |> mapreduce(permutedims, vcat, _);
+    ev_rv = @pipe [result[i].ce_max.ev_rv for i=S] |> mapreduce(permutedims, vcat, _);
+    cvar = @pipe [result[i].ce_max.cvar for i=S] |> mapreduce(permutedims, vcat, _);
+    mstd = @pipe [result[i].ce_max.mstd for i=S] |> mapreduce(permutedims, vcat, _);
 
-result_array = @pipe [ev ./ ev_rv, cvar./ ev_rv, mstd./ ev_rv, cvar ./ mstd] |> map(w -> w.-1,_);
-result_mean = @pipe result_array |> map(x->mapslices(xx->percentile(xx, 50),x,dims=1),_) |> mapreduce(permutedims, hcat, _);
-result_lb = @pipe result_array |> map(x->mapslices(xx->percentile(xx, 5),x,dims=1),_) |> mapreduce(permutedims, hcat, _);
-result_ub = @pipe result_array |> map(x->mapslices(xx->percentile(xx, 95),x,dims=1),_) |> mapreduce(permutedims, hcat, _);
+    result_array = @pipe [ev ./ ev_rv, cvar./ ev_rv, mstd./ ev_rv, cvar ./ mstd] |> map(w -> w.-1,_);
+    result_mean = @pipe result_array |> map(x->mapslices(xx->percentile(xx, 50),x,dims=1),_) |> mapreduce(permutedims, hcat, _);
+    result_lb = @pipe result_array |> map(x->mapslices(xx->percentile(xx, 5),x,dims=1),_) |> mapreduce(permutedims, hcat, _);
+    result_ub = @pipe result_array |> map(x->mapslices(xx->percentile(xx, 95),x,dims=1),_) |> mapreduce(permutedims, hcat, _);
 
-result_df = DataFrame(vcat(result_mean, result_lb, result_ub), :auto);
-rename!(result_df, [:ev,:cvar, :mstd, :cvar_mstd])
+    result_df = DataFrame(vcat(result_mean, result_lb, result_ub), :auto);
+    rename!(result_df, [:ev,:cvar, :mstd, :cvar_mstd])
 
-result_df.var = vcat(repeat(["median"], length(α)), repeat(["lb"], length(α)), repeat(["ub"], length(α)));
-result_df.alpha = repeat(α, 3)
-CSV.write("output/ce_df" * suffix * ".csv", result_df)
+    result_df.var = vcat(repeat(["median"], length(α)), repeat(["lb"], length(α)), repeat(["ub"], length(α)));
+    result_df.alpha = repeat(α, 3)
+    CSV.write("../../output/ce_df" * suffix * ".csv", result_df)
 end
 
+using ProfileView
+@profview fcn_mc_sim(1)
+
+S =  1:5
 result = pmap(i -> fcn_mc_sim(i), S);
-fcn_write_result(result, "_baseline");
+fcn_write_result(result, "_try");
 
 result_no_risk = pmap(i -> fcn_mc_sim(i, 0), S);
 fcn_write_result(result_no_risk, "_no_risk"); 

@@ -36,7 +36,7 @@ p13 <- sp_weight %>%
 ggsave("plots/spatial_weight_heatmap.png", p11 + p12 + p13 + plot_annotation(tag_levels = 'a'))
 
 ## Plot change in CE
-ce_df <- read.csv("output/ce_df_baseline.csv")
+ce_df <- read.csv("output/ce_df_try.csv")
 
 plot11 <- ce_df |>
   select(-cvar_mstd) |>
