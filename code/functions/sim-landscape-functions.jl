@@ -104,7 +104,7 @@ function fcn_spatial_shock(W, S::Integer, n_shocks::Int, shock_size; p=ones(size
     return V, NSS, sl;
 end
 
-function fcn_spatial_shock_gev(W, S::Integer; p=0.005, scale=20)
+function fcn_spatial_shock_gev(W, S::Integer; p=1/size(W,1), scale=20)
     N = size(W,1);
     V = zeros(N,S);
     NSS = zeros(S);
@@ -173,7 +173,7 @@ function fcn_generate_landscape(dims=(40,40); S=(prod(dims)+1), yy=100, n_shocks
     pw[pw .< 0] .= 0;
     pw   = pw ./ sum(pw);
     #SS, nss, sl   = fcn_spatial_shock(W[b .== 0, b .== 0], S, n_shocks, shock_size, p=vec(pw));
-    SS, nss, sl   = fcn_spatial_shock_gev(W[b .== 0, b .== 0], S, scale = 30)
+    SS, nss, sl   = fcn_spatial_shock_gev(W[b .== 0, b .== 0], S)
     Wps  = copy(Wp);
     Wps[isless.(1e-5,SS)] .= 0;
 

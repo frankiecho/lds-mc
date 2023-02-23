@@ -73,10 +73,7 @@ function fcn_write_result(result::AbstractArray, suffix = "")
     CSV.write("../../output/ce_df" * suffix * ".csv", result_df)
 end
 
-using ProfileView
-@profview fcn_mc_sim(1)
-
-S =  1:5
+#S =  1:5
 result = pmap(i -> fcn_mc_sim(i), S);
 fcn_write_result(result, "_try");
 
