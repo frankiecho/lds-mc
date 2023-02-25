@@ -11,6 +11,7 @@ struct Landscape
     SS::Matrix # Shock location (binary)
     P::Matrix # Probability of shock
     nss::Vector # Number of shocks
+    shock_df::DataFrame # Shock locations
 end
 
 struct UtilityFunction

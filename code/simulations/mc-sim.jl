@@ -1,16 +1,16 @@
 using Distributed, JLD2
 
-#addprocs(1);
-#@everywhere using Gurobi
+addprocs(5);
+@everywhere using Gurobi
 using Gurobi
 
 #GRB_ENV = Gurobi.Env(); sendto(workers(),GRB_ENV=GRB_ENV);
 
-#@everywhere begin
+@everywhere begin
 using Revise, DataFrames, Glob, Random, Pipe, ProgressMeter, CSV
 Random.seed!(123456)
 using Random
-S = 1:10;
+S = 1:5;
 cd("/Users/frankiecho/Documents/Github/lds-mc-julia/code/simulations/")
 
 GRB_ENV = Gurobi.Env();
@@ -22,8 +22,8 @@ include("../functions/sim-landscape-functions.jl")
 λ = 0:0.2:1
 budget = 100;
 
-function fcn_mc_sim(i, n_shocks=100)
-    L = fcn_generate_landscape(yy = 10, n_shocks=n_shocks)
+function fcn_mc_sim(i, n_shocks=1000)
+    L = fcn_generate_landscape(yy = 20, n_shocks=n_shocks)
     #L = fcn_generate_landscape((10,10), yy = 10, n_shocks=n_shocks, shock_size=Poisson(1));
     ev_soln = fcn_optim_ev(-L.R; budget = budget);
     ev_rv_soln = fcn_optim_ev(-L.RV; budget = budget);
@@ -52,7 +52,7 @@ function fcn_mc_sim(i, n_shocks=100)
     println("Completed run $(i)")
     return MCResult(ef, ce, ce_max)
 end
-#end
+end
 
 function fcn_write_result(result::AbstractArray, suffix = "")
     ev = @pipe [result[i].ce_max.ev for i=S] |> mapreduce(permutedims, vcat, _);
@@ -73,11 +73,10 @@ function fcn_write_result(result::AbstractArray, suffix = "")
     CSV.write("../../output/ce_df" * suffix * ".csv", result_df)
 end
 
-#S =  1:5
 result = pmap(i -> fcn_mc_sim(i), S);
-fcn_write_result(result, "_try");
+fcn_write_result(result, "_baseline");
 
 result_no_risk = pmap(i -> fcn_mc_sim(i, 0), S);
 fcn_write_result(result_no_risk, "_no_risk"); 
 
-jldsave("output/result.jld2"; result, result_no_risk, result_high_risk)
+#jldsave("../../output/result.jld2"; result, result_no_risk)

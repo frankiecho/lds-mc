@@ -33,13 +33,15 @@ p13 <- sp_weight %>%
   scale_fill_viridis_c(option = 'magma', direction = -1) +
   theme(legend.position = 'bottom', legend.title = element_blank())
 
-ggsave("plots/spatial_weight_heatmap.png", p11 + p12 + p13 + plot_annotation(tag_levels = 'a'))
+heatmap <- p11 + p12 + p13 + plot_annotation(tag_levels = 'a')
+heatmap
+ggsave("plots/spatial_weight_heatmap.png", heatmap)
 
 ## Plot change in CE
-ce_df <- read.csv("output/ce_df_try.csv")
+ce_df <- read.csv("output/ce_df_baseline.csv")
 
 plot11 <- ce_df |>
-  select(-cvar_mstd) |>
+  dplyr::select(-cvar_mstd) |>
   pivot_longer(c('ev', 'cvar', 'mstd'), names_to = 'name', values_to = 'value') |>
   mutate(name = factor(name, c('ev', 'cvar', 'mstd'), c("EV", "M-CVaR", "M-SD"))) |>
   pivot_wider(names_from = var, values_from = value) |>
@@ -55,7 +57,7 @@ plot11 <- ce_df |>
   theme(legend.title = element_blank())
 
 plot12 <- ce_df |>
-  select(c(-ev, -cvar, -mstd)) |>
+  dplyr::select(c(-ev, -cvar, -mstd)) |>
   rename(value = cvar_mstd) |>
   pivot_wider(names_from = var, values_from = value) |>
   ggplot() +
