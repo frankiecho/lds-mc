@@ -1,6 +1,6 @@
 using Distributed, JLD2
 
-addprocs(5);
+addprocs(35);
 @everywhere using Gurobi
 using Gurobi
 
@@ -10,16 +10,17 @@ using Gurobi
 using Revise, DataFrames, Glob, Random, Pipe, ProgressMeter, CSV
 Random.seed!(123456)
 using Random
-S = 1:5;
-cd("/Users/frankiecho/Documents/Github/lds-mc-julia/code/simulations/")
+S = 1:100;
+#cd("/Users/frankiecho/Documents/Github/lds-mc-julia/code/simulations/")
+
 
 GRB_ENV = Gurobi.Env();
-include("../functions/type-defs.jl")
-include("../functions/optim-functions.jl");
-include("../functions/expected-utility-functions.jl")
-include("../functions/sim-landscape-functions.jl")
+include("../../code/functions/type-defs.jl")
+include("../../code/functions/optim-functions.jl");
+include("../../code/functions/expected-utility-functions.jl")
+include("../../code/functions/sim-landscape-functions.jl")
 α = 0:0.1:50
-λ = 0:0.2:1
+λ = 0:0.1:1
 budget = 100;
 
 function fcn_mc_sim(i, n_shocks=1000)
@@ -70,7 +71,7 @@ function fcn_write_result(result::AbstractArray, suffix = "")
 
     result_df.var = vcat(repeat(["median"], length(α)), repeat(["lb"], length(α)), repeat(["ub"], length(α)));
     result_df.alpha = repeat(α, 3)
-    CSV.write("../../output/ce_df" * suffix * ".csv", result_df)
+    CSV.write("d:/Github/lds-mc/output/ce_df" * suffix * ".csv", result_df)
 end
 
 result = pmap(i -> fcn_mc_sim(i), S);
