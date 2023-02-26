@@ -47,7 +47,8 @@ plot11 <- ce_df |>
   pivot_wider(names_from = var, values_from = value) |>
   ggplot() +
   geom_hline(yintercept = 0, color = 'gray50') +
-  geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha, fill = name), alpha = 0.3) +
+  geom_ribbon(aes(ymin = min, ymax = max, x = alpha, fill = name), alpha = 0.15) +
+  #geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha, fill = name), alpha = 0.15) +
   geom_line(aes(x = alpha, y = median, color = name)) +
   scale_y_continuous("Change from baseline", labels = scales::percent) +
   scale_x_continuous("α") +
@@ -62,7 +63,8 @@ plot12 <- ce_df |>
   pivot_wider(names_from = var, values_from = value) |>
   ggplot() +
   geom_hline(yintercept = 0) +
-  geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha), alpha = 0.3) +
+  geom_ribbon(aes(ymin = min, ymax = max, x = alpha), alpha = 0.15) +
+  #geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha), alpha = 0.15) +
   geom_line(aes(x = alpha, y = median)) +
   geom_hline(yintercept = 0, color = 'gray50') +
   scale_y_continuous("Change from M-SD", labels = scales::percent) +

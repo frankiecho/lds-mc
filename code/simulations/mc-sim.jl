@@ -65,8 +65,9 @@ function fcn_write_result(result::AbstractArray, suffix = "")
     result_mean = @pipe result_array |> map(x->mapslices(xx->percentile(xx, 50),x,dims=1),_) |> mapreduce(permutedims, hcat, _);
     result_lb = @pipe result_array |> map(x->mapslices(xx->percentile(xx, 5),x,dims=1),_) |> mapreduce(permutedims, hcat, _);
     result_ub = @pipe result_array |> map(x->mapslices(xx->percentile(xx, 95),x,dims=1),_) |> mapreduce(permutedims, hcat, _);
-
-    result_df = DataFrame(vcat(result_mean, result_lb, result_ub), :auto);
+    result_min = @pipe result_array |> map(x->mapslices(xx->minimum(xx),x,dims=1),_) |> mapreduce(permutedims, hcat, _);
+    result_max = @pipe result_array |> map(x->mapslices(xx->maximum(xx),x,dims=1),_) |> mapreduce(permutedims, hcat, _);
+    result_df = DataFrame(vcat(result_mean, result_lb, result_ub, result_min, result_max), :auto);
     rename!(result_df, [:ev,:cvar, :mstd, :cvar_mstd])
 
     result_df.var = vcat(repeat(["median"], length(α)), repeat(["lb"], length(α)), repeat(["ub"], length(α)));
