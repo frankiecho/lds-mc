@@ -77,6 +77,6 @@ heatmap3 <- ggplot(shock_heatmap_df, aes(x = x, y = y)) +
   theme(legend.position = 'bottom', legend.title = element_blank())
 heatmap3
 
-heatmap_shock <- heatmap1 + heatmap2 + plot_layout(guides = 'collect', widths = c(2,1)) & theme(legend.position = 'bottom')
+heatmap_shock <- heatmap1 + heatmap2 + plot_layout(guides = 'collect', widths = c(2,1)) &  plot_annotation(tag_levels = 'a') & theme(legend.position = 'bottom')
 heatmap_shock
 ggsave("plots/spatial_shock_heatmap.png", heatmap_shock, units = 'cm', width = 20, height = 9)
