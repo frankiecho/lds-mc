@@ -1,7 +1,7 @@
 ## Stores type definitions
 
-using Revise
-includet("expected-utility-functions.jl")
+using Revise, DataFrames
+include("expected-utility-functions.jl")
 
 struct Landscape
     # Two dimensional landscape over N scenarios
@@ -9,7 +9,7 @@ struct Landscape
     R::Matrix # Returns (including shock)
     RV::Matrix # Returns (without shock)
     SS::Matrix # Shock location (binary)
-    P::Matrix # Probability of shock
+    W::Matrix # Spatial weights
     nss::Vector # Number of shocks
     shock_df::DataFrame # Shock locations
 end
@@ -62,4 +62,5 @@ struct MCResult
     ef::Result # Efficiency Frontier
     ce::Result # Certainty equivalents
     ce_max::Result # Certainty equivalents (with maximised λ)
+    L::Landscape # Landscape
 end
