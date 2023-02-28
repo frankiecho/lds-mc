@@ -38,7 +38,8 @@ heatmap
 ggsave("plots/spatial_weight_heatmap.png", heatmap)
 
 ## Plot change in CE
-ce_df <- read.csv("output/ce_df_baseline.csv")
+ce_df <- read.csv("output/ce_df_baseline_500.csv") %>%
+  filter(alpha <= 30)
 
 plot11 <- ce_df |>
   dplyr::select(-cvar_mstd) |>
@@ -47,11 +48,11 @@ plot11 <- ce_df |>
   pivot_wider(names_from = var, values_from = value) |>
   ggplot() +
   geom_hline(yintercept = 0, color = 'gray50') +
-  geom_ribbon(aes(ymin = min, ymax = max, x = alpha, fill = name), alpha = 0.15) +
-  #geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha, fill = name), alpha = 0.15) +
+  #geom_ribbon(aes(ymin = min, ymax = max, x = alpha, fill = name), alpha = 0.15) +
+  geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha, fill = name), alpha = 0.2) +
   geom_line(aes(x = alpha, y = median, color = name)) +
   scale_y_continuous("Change from baseline", labels = scales::percent) +
-  scale_x_continuous("α") +
+  scale_x_continuous("θ") +
   ggsci::scale_color_nejm() +
   ggsci::scale_fill_nejm() +
   ggpubr::theme_pubr() +
@@ -63,12 +64,13 @@ plot12 <- ce_df |>
   pivot_wider(names_from = var, values_from = value) |>
   ggplot() +
   geom_hline(yintercept = 0) +
-  geom_ribbon(aes(ymin = min, ymax = max, x = alpha), alpha = 0.15) +
-  #geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha), alpha = 0.15) +
+  #geom_ribbon(aes(ymin = min, ymax = max, x = alpha), alpha = 0.15) +
+  geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha), alpha = 0.2) +
   geom_line(aes(x = alpha, y = median)) +
   geom_hline(yintercept = 0, color = 'gray50') +
   scale_y_continuous("Change from M-SD", labels = scales::percent) +
-  scale_x_continuous("α") +
+  scale_x_continuous("θ") +
   ggpubr::theme_pubr()
 
-plot11 + plot12 + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+(delta_plot <- plot11 + plot12 + plot_layout(guides = "collect") & theme(legend.position = 'bottom') &  plot_annotation(tag_levels = 'a') )
+ggsave("plots/delta_plot.png", delta_plot, units = 'cm', width = 20, height = 12)

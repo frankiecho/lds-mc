@@ -156,7 +156,7 @@ function fcn_reshape_lds(D, dims)
     return reshape(D, dims_round);
 end
 
-function fcn_generate_landscape(dims=(40,40); S=(prod(dims)+1), yy=rand()*100, n_shocks=1000, shock_size=Poisson(20))
+function fcn_generate_landscape(dims=(40,40); S=(prod(dims)+1), yy=rand()*100, n_shocks=1000)
     # Generates a (n1 x n2) grid cells of landscape describing benefits of protecting each cell, with random shocks that wipe out returns in a given set of cells under every scenario.
 
     # dims: dimensions of the landscape grid

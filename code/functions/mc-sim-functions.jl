@@ -61,3 +61,63 @@ function fcn_write_result(result::AbstractArray, suffix = "")
     result_df.alpha = repeat(α, 5)
     CSV.write("$(home_dir)/output/ce_df_$(suffix)_$(Q[end]).csv", result_df)
 end
+
+function fcn_write_shock_exposure(result::AbstractArray, suffix = "", threshold = 10:10:100)
+    for t=threshold
+        likelihood_shock_mstd = zeros(length(α), length(Q));
+        likelihood_shock_cvar = zeros(length(α), length(Q));
+        for q=Q
+            max_ce_id_mstd = map(i -> findmax(i)[2][2], result[q].ce.mstd)
+            max_ce_id_cvar = map(i -> findmax(i)[2][2], result[q].ce.cvar)
+            for (i,x)=enumerate(max_ce_id_mstd)
+                likelihood_shock_mstd[i,q] = mean(((result[q].L.R .< 1e-5)' * result[q].ef.mstd.solutions[:,x]) .> t)
+            end
+
+            for (i,x)=enumerate(max_ce_id_cvar)
+                likelihood_shock_cvar[i,q] = mean(((result[q].L.R .< 1e-5)' * result[q].ef.mstd.solutions[:,x]) .> t)
+            end
+        end
+        run_median_mstd = percentile.(eachrow(likelihood_shock_mstd), 50)
+        run_ub_mstd = percentile.(eachrow(likelihood_shock_mstd), 95)
+        run_lb_mstd = percentile.(eachrow(likelihood_shock_mstd), 5)
+
+        run_median_cvar = percentile.(eachrow(likelihood_shock_cvar), 50)
+        run_ub_cvar = percentile.(eachrow(likelihood_shock_cvar), 95)
+        run_lb_cvar = percentile.(eachrow(likelihood_shock_cvar), 5)
+
+        result_df = DataFrame(hcat(vcat(run_median_mstd, run_lb_mstd, run_ub_mstd), vcat(run_median_cvar, run_lb_cvar, run_ub_cvar)), :auto);
+        rename!(result_df, [:mstd, :cvar])
+        result_df.alpha = repeat(α, 3);
+        result_df.var = vcat(repeat(["median"], length(α)), repeat(["lb"], length(α)), repeat(["ub"], length(α)));
+        CSV.write("$(home_dir)/output/likelihood_$(suffix)_$(Q[end])_$(t).csv", result_df)
+    end
+end
+
+function fcn_write_contiguity(result::AbstractArray, suffix = "", threshold = 10:10:100)
+    contiguity_mstd = zeros(length(α), length(Q));
+    contiguity_cvar = zeros(length(α), length(Q));
+    for q=Q
+        max_ce_id_mstd = map(i -> findmax(i)[2][2], result[q].ce.mstd)
+        max_ce_id_cvar = map(i -> findmax(i)[2][2], result[q].ce.cvar)
+        for (i,x)=enumerate(max_ce_id_mstd)
+            contiguity_mstd[i,q] = result[q].ef.mstd.solutions[:,x]' * result[q].L.W * result[q].ef.mstd.solutions[:,x]
+        end
+
+        for (i,x)=enumerate(max_ce_id_cvar)
+            contiguity_cvar[i,q] = result[q].ef.cvar.solutions[:,x]' * result[q].L.W * result[q].ef.cvar.solutions[:,x]
+        end
+    end
+    run_median_mstd = percentile.(eachrow(contiguity_mstd), 50)
+    run_ub_mstd = percentile.(eachrow(contiguity_mstd), 95)
+    run_lb_mstd = percentile.(eachrow(contiguity_mstd), 5)
+
+    run_median_cvar = percentile.(eachrow(contiguity_cvar), 50)
+    run_ub_cvar = percentile.(eachrow(contiguity_cvar), 95)
+    run_lb_cvar = percentile.(eachrow(contiguity_cvar), 5)
+
+    result_df = DataFrame(hcat(vcat(run_median_mstd, run_lb_mstd, run_ub_mstd), vcat(run_median_cvar, run_lb_cvar, run_ub_cvar)), :auto);
+    rename!(result_df, [:mstd, :cvar])
+    result_df.alpha = repeat(α, 3);
+    result_df.var = vcat(repeat(["median"], length(α)), repeat(["lb"], length(α)), repeat(["ub"], length(α)));
+    CSV.write("$(home_dir)/output/contiguity_$(suffix)_$(Q[end]).csv", result_df)
+end
