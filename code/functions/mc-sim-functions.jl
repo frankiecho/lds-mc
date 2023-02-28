@@ -121,3 +121,7 @@ function fcn_write_contiguity(result::AbstractArray, suffix = "", threshold = 10
     result_df.var = vcat(repeat(["median"], length(α)), repeat(["lb"], length(α)), repeat(["ub"], length(α)));
     CSV.write("$(home_dir)/output/contiguity_$(suffix)_$(Q[end]).csv", result_df)
 end
+
+function fcn_save_results(result_array)
+    jldsave("$(home_dir)/output/result.jld2"; result_array)
+end
