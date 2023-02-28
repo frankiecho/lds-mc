@@ -16,8 +16,10 @@ end
 
 result = pmap(i -> fcn_mc_sim(i), Q);
 fcn_write_result(result, "baseline");
+fcn_write_shock_exposure(result);
+fcn_write_contiguity(result);
 
-result_no_risk = pmap(i -> fcn_mc_sim(i, 0), Q);
-fcn_write_result(result_no_risk, "norisk"); 
+#result_no_risk = pmap(i -> fcn_mc_sim(i, 0), Q);
+#fcn_write_result(result_no_risk, "norisk"); 
 
-fcn_save_results([result, result_no_risk]);
+fcn_save_results([result]);
