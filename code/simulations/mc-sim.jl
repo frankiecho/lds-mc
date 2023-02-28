@@ -20,4 +20,4 @@ fcn_write_result(result, "baseline");
 result_no_risk = pmap(i -> fcn_mc_sim(i, 0), Q);
 fcn_write_result(result_no_risk, "norisk"); 
 
-#jldsave("../../output/result.jld2"; result, result_no_risk)
+jldsave("$(home_dir)/output/result.jld2"; result, result_no_risk)
