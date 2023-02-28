@@ -64,3 +64,12 @@ struct MCResult
     ce_max::Result # Certainty equivalents (with maximised λ)
     L::Landscape # Landscape
 end
+
+struct LandscapeParameters
+    dims::Tuple # Dimensions (n1 x n2)
+    yy::R # Base return
+    ρ::R # Spatial correlation
+    σ::R # Standard deviation of SAR process
+    φ::R # Distance decay parameter
+    
+end
