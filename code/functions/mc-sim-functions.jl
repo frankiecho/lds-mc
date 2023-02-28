@@ -1,8 +1,11 @@
-home_dir = "/users/frankiecho/Documents/Github/lds-mc-julia"
+#home_dir = "/users/frankiecho/Documents/Github/lds-mc-julia"
+home_dir = "d:/Github/lds-mc"
 include("$(home_dir)/code/functions/type-defs.jl")
 include("$(home_dir)/code/functions/optim-functions.jl");
 include("$(home_dir)/code/functions/expected-utility-functions.jl")
 include("$(home_dir)/code/functions/sim-landscape-functions.jl")
+
+using CSV
 
 α = 0:0.1:50
 λ = 0:0.1:1
@@ -71,8 +74,8 @@ function fcn_write_shock_exposure(result::AbstractArray, suffix = "", threshold 
             max_ce_id_cvar = map(i -> findmax(i)[2][2], result[q].ce.cvar)
             
             ev_rv_likelihood = mean(((result[q].L.R .< 1e-5)' * result[q].ef.ev_rv.solutions) .> t)
-            mstd_likelihood = (mean(((result[q].L.R .< 1e-5)' * result[q].ef.mstd.solutions) .> t, dims = 2) .- ev_rv_likelihood)
-            cvar_likelihood = (mean(((result[q].L.R .< 1e-5)' * result[q].ef.mstd.solutions) .> t, dims = 2) .- ev_rv_likelihood)
+            mstd_likelihood = (mean(((result[q].L.R .< 1e-5)' * result[q].ef.mstd.solutions) .> t, dims = 2))
+            cvar_likelihood = (mean(((result[q].L.R .< 1e-5)' * result[q].ef.mstd.solutions) .> t, dims = 2))
 
             for (i,x)=enumerate(max_ce_id_mstd)
                 likelihood_shock_mstd[i,q] = mstd_likelihood[x]
@@ -82,10 +85,6 @@ function fcn_write_shock_exposure(result::AbstractArray, suffix = "", threshold 
                 likelihood_shock_cvar[i,q] = cvar_likelihood[x]
             end
         end
-        #println(size(likelihood_shock_mstd))
-        #println(size(repeat(likelihood_shock_mstd[1,:], 1,size(likelihood_shock_mstd,1))))
-        #likelihood_shock_mstd = (likelihood_shock_mstd' .- repeat(likelihood_shock_mstd[1,:], 1,size(likelihood_shock_mstd,1)))'
-        #likelihood_shock_cvar = (likelihood_shock_cvar' .- repeat(likelihood_shock_cvar[1,:], 1, size(likelihood_shock_cvar,1)))'
 
         run_median_mstd = percentile.(eachrow(likelihood_shock_mstd), 50)
         run_ub_mstd = percentile.(eachrow(likelihood_shock_mstd), 95)
