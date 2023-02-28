@@ -74,3 +74,45 @@ plot12 <- ce_df |>
 
 (delta_plot <- plot11 + plot12 + plot_layout(guides = "collect") & theme(legend.position = 'bottom') &  plot_annotation(tag_levels = 'a') )
 ggsave("plots/delta_plot.png", delta_plot, units = 'cm', width = 20, height = 12)
+
+
+## Plot change in contiguity
+contiguity <- read_csv('output/contiguity_baseline_2.csv') |>
+  filter(alpha <= 30)
+contiguity |>
+  pivot_longer(c('mstd','cvar')) |>
+  mutate(name = factor(name, c('ev', 'cvar', 'mstd'), c("EV", "M-CVaR", "M-SD"))) |>
+  pivot_wider(names_from = var, values_from = value) |>
+  ggplot() +
+  #geom_hline(yintercept = 0, color = 'gray50') +
+  #geom_ribbon(aes(ymin = min, ymax = max, x = alpha, fill = name), alpha = 0.15) +
+  geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha, fill = name), alpha = 0.2) +
+  geom_line(aes(x = alpha, y = median, color = name)) +
+  scale_x_continuous("θ") +
+  scale_y_continuous("Connectivity index", labels = scales::percent) +
+  ggsci::scale_color_nejm() +
+  ggsci::scale_fill_nejm() +
+  ggpubr::theme_pubr() +
+  theme(legend.title = element_blank())
+
+shock_likelihood <- lapply(seq(30,80,10), function(t) read_csv(paste0('output/likelihood__100_', t , '.csv'))) 
+names(shock_likelihood) <- seq(30,80,10)
+shock_likelihood|>
+  bind_rows(.id='threshold') |>
+  filter(threshold == 50) |>
+  #filter(threshold %in% c(40,50,60)) |>
+  filter(alpha <= 30) |>
+  pivot_longer(c('mstd','cvar')) |>
+  mutate(name = factor(name, c('ev', 'cvar', 'mstd'), c("EV", "M-CVaR", "M-SD"))) |>
+  pivot_wider(names_from = var, values_from = value) |>
+  ggplot() +
+  #geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha, fill = name), alpha = 0.2) +
+  geom_line(aes(x = alpha, y = median, color = name)) +
+  scale_x_continuous("θ") +
+  scale_y_continuous("Probability", labels = scales::percent) +
+  ggsci::scale_color_nejm() +
+  ggsci::scale_fill_nejm() +
+  ggpubr::theme_pubr() +
+  #facet_wrap(~threshold, scales = 'free_y') +
+  theme(legend.title = element_blank())
+

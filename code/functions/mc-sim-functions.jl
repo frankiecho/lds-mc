@@ -62,21 +62,31 @@ function fcn_write_result(result::AbstractArray, suffix = "")
     CSV.write("$(home_dir)/output/ce_df_$(suffix)_$(Q[end]).csv", result_df)
 end
 
-function fcn_write_shock_exposure(result::AbstractArray, suffix = "", threshold = 10:10:100)
+function fcn_write_shock_exposure(result::AbstractArray, suffix = "", threshold = 50:2:100, Q=1:5)
     for t=threshold
         likelihood_shock_mstd = zeros(length(α), length(Q));
         likelihood_shock_cvar = zeros(length(α), length(Q));
         for q=Q
             max_ce_id_mstd = map(i -> findmax(i)[2][2], result[q].ce.mstd)
             max_ce_id_cvar = map(i -> findmax(i)[2][2], result[q].ce.cvar)
+            
+            ev_rv_likelihood = mean(((result[q].L.R .< 1e-5)' * result[q].ef.ev_rv.solutions) .> t)
+            mstd_likelihood = (mean(((result[q].L.R .< 1e-5)' * result[q].ef.mstd.solutions) .> t, dims = 2) .- ev_rv_likelihood)
+            cvar_likelihood = (mean(((result[q].L.R .< 1e-5)' * result[q].ef.mstd.solutions) .> t, dims = 2) .- ev_rv_likelihood)
+
             for (i,x)=enumerate(max_ce_id_mstd)
-                likelihood_shock_mstd[i,q] = mean(((result[q].L.R .< 1e-5)' * result[q].ef.mstd.solutions[:,x]) .> t)
+                likelihood_shock_mstd[i,q] = mstd_likelihood[x]
             end
 
             for (i,x)=enumerate(max_ce_id_cvar)
-                likelihood_shock_cvar[i,q] = mean(((result[q].L.R .< 1e-5)' * result[q].ef.mstd.solutions[:,x]) .> t)
+                likelihood_shock_cvar[i,q] = cvar_likelihood[x]
             end
         end
+        #println(size(likelihood_shock_mstd))
+        #println(size(repeat(likelihood_shock_mstd[1,:], 1,size(likelihood_shock_mstd,1))))
+        #likelihood_shock_mstd = (likelihood_shock_mstd' .- repeat(likelihood_shock_mstd[1,:], 1,size(likelihood_shock_mstd,1)))'
+        #likelihood_shock_cvar = (likelihood_shock_cvar' .- repeat(likelihood_shock_cvar[1,:], 1, size(likelihood_shock_cvar,1)))'
+
         run_median_mstd = percentile.(eachrow(likelihood_shock_mstd), 50)
         run_ub_mstd = percentile.(eachrow(likelihood_shock_mstd), 95)
         run_lb_mstd = percentile.(eachrow(likelihood_shock_mstd), 5)
@@ -93,18 +103,23 @@ function fcn_write_shock_exposure(result::AbstractArray, suffix = "", threshold 
     end
 end
 
-function fcn_write_contiguity(result::AbstractArray, suffix = "", threshold = 10:10:100)
+function fcn_write_contiguity(result::AbstractArray, suffix = "", Q=1:5)
     contiguity_mstd = zeros(length(α), length(Q));
     contiguity_cvar = zeros(length(α), length(Q));
     for q=Q
         max_ce_id_mstd = map(i -> findmax(i)[2][2], result[q].ce.mstd)
         max_ce_id_cvar = map(i -> findmax(i)[2][2], result[q].ce.cvar)
+        contiguity_ev_rv_lambda = result[q].ef.ev_rv.solutions' * result[q].L.W * result[q].ef.cvar.solutions
+
+        contiguity_mstd_lambda = (result[q].ef.mstd.solutions' * result[q].L.W * result[q].ef.mstd.solutions .- contiguity_ev_rv_lambda) ./ contiguity_ev_rv_lambda
+        contiguity_cvar_lambda = (result[q].ef.cvar.solutions' * result[q].L.W * result[q].ef.cvar.solutions .- contiguity_ev_rv_lambda) ./ contiguity_ev_rv_lambda
+
         for (i,x)=enumerate(max_ce_id_mstd)
-            contiguity_mstd[i,q] = result[q].ef.mstd.solutions[:,x]' * result[q].L.W * result[q].ef.mstd.solutions[:,x]
+            contiguity_mstd[i,q] = contiguity_mstd_lambda[x]
         end
 
         for (i,x)=enumerate(max_ce_id_cvar)
-            contiguity_cvar[i,q] = result[q].ef.cvar.solutions[:,x]' * result[q].L.W * result[q].ef.cvar.solutions[:,x]
+            contiguity_cvar[i,q] = contiguity_cvar_lambda[x]
         end
     end
     run_median_mstd = percentile.(eachrow(contiguity_mstd), 50)

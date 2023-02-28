@@ -67,9 +67,9 @@ end
 
 struct LandscapeParameters
     dims::Tuple # Dimensions (n1 x n2)
-    yy::R # Base return
-    ρ::R # Spatial correlation
-    σ::R # Standard deviation of SAR process
-    φ::R # Distance decay parameter
+    yy::Real # Base return
+    ρ::Real # Spatial correlation
+    σ::Real # Standard deviation of SAR process
+    φ::Real # Distance decay parameter
     
 end
