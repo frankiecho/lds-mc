@@ -136,6 +136,63 @@ function fcn_write_contiguity(result::AbstractArray, suffix = "", Q=1:5)
     CSV.write("$(home_dir)/output/contiguity_$(suffix)_$(Q[end]).csv", result_df)
 end
 
+
+function fcn_write_downside(result::AbstractArray, suffix = "", Q=1:5)
+    mstd_downside_crra = zeros(length(α), length(Q));
+    cvar_downside_crra = zeros(length(α), length(Q));
+    mstd_upside_crra = zeros(length(α), length(Q));
+    cvar_upside_crra = zeros(length(α), length(Q));
+    for q=Q
+        max_ce_id_mstd = map(i -> findmax(i)[2][2], result[q].ce.mstd)
+        max_ce_id_cvar = map(i -> findmax(i)[2][2], result[q].ce.cvar)
+        lb = percentile(result[q].ef.ev.returns, 5);
+        ub = percentile(result[q].ef.ev.returns, 95);
+    
+        cvar_downside = mean(result[q].ef.cvar.returns .< lb, dims = 1)'
+        mstd_downside = mean(result[q].ef.mstd.returns .< lb, dims = 1)'
+        cvar_upside = mean(result[q].ef.cvar.returns .> ub, dims = 1)'
+        mstd_upside = mean(result[q].ef.mstd.returns .> ub, dims = 1)'
+    
+        for (i,x)=enumerate(max_ce_id_mstd)
+            mstd_downside_crra[i,q] = mstd_downside[x]
+            mstd_upside_crra[i,q] = mstd_upside[x]
+        end
+    
+        for (i,x)=enumerate(max_ce_id_cvar)
+            cvar_downside_crra[i,q] = cvar_downside[x]
+            cvar_upside_crra[i,q] = cvar_upside[x]
+        end
+    end
+
+    run_median_downside_mstd = percentile.(eachrow(mstd_downside_crra), 50)
+    run_ub_downside_mstd = percentile.(eachrow(mstd_downside_crra), 95)
+    run_lb_downside_mstd = percentile.(eachrow(mstd_downside_crra), 5)
+    
+    run_median_upside_mstd = percentile.(eachrow(mstd_upside_crra), 50)
+    run_ub_upside_mstd = percentile.(eachrow(mstd_upside_crra), 95)
+    run_lb_upside_mstd = percentile.(eachrow(mstd_upside_crra), 5)
+
+    run_median_downside_cvar = percentile.(eachrow(cvar_downside_crra), 50)
+    run_ub_downside_cvar = percentile.(eachrow(cvar_downside_crra), 95)
+    run_lb_downside_cvar = percentile.(eachrow(cvar_downside_crra), 5)
+
+    run_median_upside_cvar = percentile.(eachrow(cvar_upside_crra), 50)
+    run_ub_upside_cvar = percentile.(eachrow(cvar_upside_crra), 95)
+    run_lb_upside_cvar = percentile.(eachrow(cvar_upside_crra), 5)
+
+    result_df = DataFrame(hcat(vcat(run_median_downside_mstd, run_lb_downside_mstd, run_ub_downside_mstd), vcat(run_median_downside_cvar, run_lb_downside_cvar, run_ub_downside_cvar)), :auto);
+    rename!(result_df, [:mstd, :cvar])
+    result_df.alpha = repeat(α, 3);
+    result_df.var = vcat(repeat(["median"], length(α)), repeat(["lb"], length(α)), repeat(["ub"], length(α)));
+    CSV.write("$(home_dir)/output/downside_$(suffix)_$(Q[end]).csv", result_df)
+
+    result_df = DataFrame(hcat(vcat(run_median_upside_mstd, run_lb_downside_cvar, run_ub_upside_mstd), vcat(run_median_upside_cvar, run_lb_upside_cvar, run_ub_upside_cvar)), :auto);
+    rename!(result_df, [:mstd, :cvar])
+    result_df.alpha = repeat(α, 3);
+    result_df.var = vcat(repeat(["median"], length(α)), repeat(["lb"], length(α)), repeat(["ub"], length(α)));
+    CSV.write("$(home_dir)/output/upside_$(suffix)_$(Q[end]).csv", result_df)
+end
+
 function fcn_save_results(result_array)
     jldsave("$(home_dir)/output/result.jld2"; result_array)
 end

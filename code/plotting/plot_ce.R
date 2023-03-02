@@ -44,7 +44,7 @@ ce_df <- read.csv("output/ce_df_baseline_500.csv") %>%
 plot11 <- ce_df |>
   dplyr::select(-cvar_mstd) |>
   pivot_longer(c('ev', 'cvar', 'mstd'), names_to = 'name', values_to = 'value') |>
-  mutate(name = factor(name, c('ev', 'cvar', 'mstd'), c("EV", "M-CVaR", "M-SD"))) |>
+  mutate(name = factor(name, c('mstd', 'cvar', 'ev'), c("M-SD", "M-CVaR", "EV"))) |>
   pivot_wider(names_from = var, values_from = value) |>
   ggplot() +
   geom_hline(yintercept = 0, color = 'gray50') +
@@ -56,6 +56,7 @@ plot11 <- ce_df |>
   ggsci::scale_color_nejm() +
   ggsci::scale_fill_nejm() +
   ggpubr::theme_pubr() +
+  coord_cartesian(expand = F) +
   theme(legend.title = element_blank())
 
 plot12 <- ce_df |>
@@ -70,6 +71,7 @@ plot12 <- ce_df |>
   geom_hline(yintercept = 0, color = 'gray50') +
   scale_y_continuous("Change from M-SD", labels = scales::percent) +
   scale_x_continuous("θ") +
+  coord_cartesian(expand = F) +
   ggpubr::theme_pubr()
 
 (delta_plot <- plot11 + plot12 + plot_layout(guides = "collect") & theme(legend.position = 'bottom') &  plot_annotation(tag_levels = 'a') )
@@ -77,15 +79,16 @@ ggsave("plots/delta_plot.png", delta_plot, units = 'cm', width = 20, height = 12
 
 
 ## Plot change in contiguity
-contiguity <- read_csv('output/contiguity_baseline_2.csv') |>
+contiguity <- read_csv('output/contiguity_baseline_100.csv') |>
   filter(alpha <= 30)
 contiguity |>
   pivot_longer(c('mstd','cvar')) |>
-  mutate(name = factor(name, c('ev', 'cvar', 'mstd'), c("EV", "M-CVaR", "M-SD"))) |>
+  mutate(name = factor(name, c('mstd', 'cvar', 'ev'), c("M-SD", "M-CVaR", "EV"))) |>
   pivot_wider(names_from = var, values_from = value) |>
   ggplot() +
   #geom_hline(yintercept = 0, color = 'gray50') +
   #geom_ribbon(aes(ymin = min, ymax = max, x = alpha, fill = name), alpha = 0.15) +
+  geom_hline(yintercept = 0, color = 'gray50') +
   geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha, fill = name), alpha = 0.2) +
   geom_line(aes(x = alpha, y = median, color = name)) +
   scale_x_continuous("θ") +
@@ -93,7 +96,10 @@ contiguity |>
   ggsci::scale_color_nejm() +
   ggsci::scale_fill_nejm() +
   ggpubr::theme_pubr() +
+  coord_cartesian(expand = F) +
   theme(legend.title = element_blank())
+
+ggsave("plots/contiguity_plot.png", units = 'cm', width = 12, height = 12)
 
 shock_likelihood <- lapply(seq(30,80,10), function(t) read_csv(paste0('output/likelihood__100_', t , '.csv'))) 
 names(shock_likelihood) <- seq(30,80,10)
@@ -103,7 +109,7 @@ shock_likelihood|>
   #filter(threshold %in% c(40,50,60)) |>
   filter(alpha <= 30) |>
   pivot_longer(c('mstd','cvar')) |>
-  mutate(name = factor(name, c('ev', 'cvar', 'mstd'), c("EV", "M-CVaR", "M-SD"))) |>
+  mutate(name = factor(name, c('mstd', 'cvar', 'ev'), c("M-SD", "M-CVaR", "EV"))) |>
   pivot_wider(names_from = var, values_from = value) |>
   ggplot() +
   #geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha, fill = name), alpha = 0.2) +
@@ -113,6 +119,7 @@ shock_likelihood|>
   ggsci::scale_color_nejm() +
   ggsci::scale_fill_nejm() +
   ggpubr::theme_pubr() +
+  coord_cartesian(expand = F, ylim = c(0.005,0.017)) +
   #facet_wrap(~threshold, scales = 'free_y') +
   theme(legend.title = element_blank())
-
+ggsave("plots/shock_likelihood_plot.png", units = 'cm', width = 12, height = 12)
