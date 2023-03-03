@@ -102,17 +102,23 @@ function fcn_write_shock_exposure(result::AbstractArray, suffix = "", threshold 
     end
 end
 
-function fcn_write_contiguity(result::AbstractArray, suffix = "", Q=1:5)
+function fcn_write_contiguity(result::AbstractArray, suffix = "", Q=1:5, distance = false)
     contiguity_mstd = zeros(length(α), length(Q));
     contiguity_cvar = zeros(length(α), length(Q));
     for q=Q
         max_ce_id_mstd = map(i -> findmax(i)[2][2], result[q].ce.mstd)
         max_ce_id_cvar = map(i -> findmax(i)[2][2], result[q].ce.cvar)
-        contiguity_ev_rv_lambda = result[q].ef.ev_rv.solutions' * result[q].L.W * result[q].ef.cvar.solutions
 
-        contiguity_mstd_lambda = (result[q].ef.mstd.solutions' * result[q].L.W * result[q].ef.mstd.solutions .- contiguity_ev_rv_lambda) ./ contiguity_ev_rv_lambda
-        contiguity_cvar_lambda = (result[q].ef.cvar.solutions' * result[q].L.W * result[q].ef.cvar.solutions .- contiguity_ev_rv_lambda) ./ contiguity_ev_rv_lambda
-
+        if (distance)
+            W, P, b, D = fcn_spatial_weights(result[q].L.dims; boundary = 1, distance = true, bandwidth = sqrt(sum(dims.^2)),  α=2)
+            contiguity_ev_rv_lambda = result[q].ef.ev_rv.solutions' * D * result[q].ef.cvar.solutions
+            contiguity_mstd_lambda = (result[q].ef.mstd.solutions' * D * result[q].ef.mstd.solutions .- contiguity_ev_rv_lambda) ./ contiguity_ev_rv_lambda
+            contiguity_cvar_lambda = (result[q].ef.cvar.solutions' * D * result[q].ef.cvar.solutions .- contiguity_ev_rv_lambda) ./ contiguity_ev_rv_lambda
+        else
+            contiguity_ev_rv_lambda = result[q].ef.ev_rv.solutions' * result[q].L.W * result[q].ef.cvar.solutions
+            contiguity_mstd_lambda = (result[q].ef.mstd.solutions' * result[q].L.W * result[q].ef.mstd.solutions .- contiguity_ev_rv_lambda) ./ contiguity_ev_rv_lambda
+            contiguity_cvar_lambda = (result[q].ef.cvar.solutions' * result[q].L.W * result[q].ef.cvar.solutions .- contiguity_ev_rv_lambda) ./ contiguity_ev_rv_lambda
+        end
         for (i,x)=enumerate(max_ce_id_mstd)
             contiguity_mstd[i,q] = contiguity_mstd_lambda[x]
         end
