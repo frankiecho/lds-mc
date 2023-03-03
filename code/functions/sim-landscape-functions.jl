@@ -18,6 +18,7 @@ function fcn_spatial_weights(dims = (5,5); boundary::Integer = 0, order = 1, que
     Xl = reshape(X, :, 1)';
     Yl = reshape(Y, :, 1)';
     P = spzeros(prod(dims_boundary), prod(dims_boundary));
+    D = spzeros(prod(dims_boundary), prod(dims_boundary));
     for i = 1:prod(dims_boundary)
         if (distance) 
             dij = sqrt.((Xl.-Xl[i]).^2 .+ (Yl.-Yl[i]).^2);
@@ -25,7 +26,7 @@ function fcn_spatial_weights(dims = (5,5); boundary::Integer = 0, order = 1, que
             k[i] = 0;
             k[dij .> bandwidth] .= 0;
             P[:,i] = k';
-            
+            D[:,i] = dij';
         elseif (queen)
             neighbour = (abs.(Xl.-Xl[i]) .≤ order) .* (abs.(Yl.-Yl[i]) .≤ order);
             P[:,i] = neighbour';
@@ -41,7 +42,7 @@ function fcn_spatial_weights(dims = (5,5); boundary::Integer = 0, order = 1, que
         W[i,:] = P[i,:] / sum(P[i,:]);
     end
     boundary_id = ((Xl .<= boundary) .| (Xl .> (dims[1]+boundary)) .| (Yl .<= boundary) .| (Yl .> (dims[2]+boundary))) |> vec;
-    return W, P, boundary_id;
+    return W, P, boundary_id, D;
 end
 
 function fcn_spatial_AR(W, S=1; X=rand(size(W,1),1), β=1, ρ=0, γ=0, θ=0, σ=1)

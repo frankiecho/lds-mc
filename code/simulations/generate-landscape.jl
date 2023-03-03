@@ -12,7 +12,7 @@ n_shocks = 50;
 shock_size = Poisson(20);
 yy = 200;
 
-W, P, b = fcn_spatial_weights(dims; distance = true, bandwidth = 20, boundary = 1, α=2);
+W, P, b, D = fcn_spatial_weights(dims; distance = true, bandwidth = 20, boundary = 1, α=2);
 X    = rand(Normal(), size(W,1));
 Wp   = fcn_spatial_AR(W, S; X = X, ρ=0.5, σ=5) .+ yy;
 Wp = Wp[b .== 0, :];
@@ -56,7 +56,7 @@ SS, NSS, sl = fcn_spatial_shock_gev(W, 500, p = 0.0005, scale = 5);
 fcn_plot_heatmap(SS[b .== 0,30])
 
 
-W, P, b = fcn_spatial_weights((40,40); boundary = 1, distance = true, bandwidth = 20,  α=2);
+W, P, b, D = fcn_spatial_weights((40,40); boundary = 1, distance = true, bandwidth = 20,  α=2);
 X    = rand(Normal(), size(W,1));
 Wp   = fcn_spatial_AR(W, S; X = X, γ=0.9, θ=0.2, σ=1);
 p1 = fcn_plot_heatmap(Wp[b .== 0,20])
