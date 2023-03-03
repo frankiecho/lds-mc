@@ -145,8 +145,8 @@ function fcn_write_downside(result::AbstractArray, suffix = "", Q=1:5)
     for q=Q
         max_ce_id_mstd = map(i -> findmax(i)[2][2], result[q].ce.mstd)
         max_ce_id_cvar = map(i -> findmax(i)[2][2], result[q].ce.cvar)
-        lb = percentile(result[q].ef.ev.returns, 5);
-        ub = percentile(result[q].ef.ev.returns, 95);
+        lb = percentile(result[q].ef.ev_rv.returns, 5);
+        ub = percentile(result[q].ef.ev_rv.returns, 95);
     
         cvar_downside = mean(result[q].ef.cvar.returns .< lb, dims = 1)'
         mstd_downside = mean(result[q].ef.mstd.returns .< lb, dims = 1)'

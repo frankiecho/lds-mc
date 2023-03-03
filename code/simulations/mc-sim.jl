@@ -1,6 +1,6 @@
 using Distributed, JLD2
 
-addprocs(5);
+addprocs(35);
 @everywhere using Gurobi
 using Gurobi
 
@@ -9,7 +9,7 @@ using Gurobi
 using Revise, DataFrames, Glob, Random, Pipe, ProgressMeter, CSV
 Random.seed!(123456)
 using Random
-Q = 1:5;
+Q = 1:500;
 #cd("/Users/frankiecho/Documents/Github/lds-mc-julia/code/simulations/")
 include("../../code/functions/mc-sim-functions.jl")
 end
