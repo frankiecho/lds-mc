@@ -1,6 +1,6 @@
 #home_dir = "/users/frankiecho/Documents/Github/lds-mc-julia"
 home_dir = "d:/Github/lds-mc"
-include("$(home_dir)/code/functions/type-defs.jl")
+#include("$(home_dir)/code/functions/type-defs.jl")
 include("$(home_dir)/code/functions/optim-functions.jl");
 include("$(home_dir)/code/functions/expected-utility-functions.jl")
 include("$(home_dir)/code/functions/sim-landscape-functions.jl")
@@ -105,12 +105,16 @@ end
 function fcn_write_contiguity(result::AbstractArray, suffix = "", Q=1:5, distance = false)
     contiguity_mstd = zeros(length(α), length(Q));
     contiguity_cvar = zeros(length(α), length(Q));
+    q=1
+    dims = result[q].L.dims;
+    W, P, b, D = fcn_spatial_weights(dims; boundary = 1, distance = true, bandwidth = sqrt(sum(dims.^2)),  α=2)
+    D = D[b .== 0, b .== 0];
+
     for q=Q
         max_ce_id_mstd = map(i -> findmax(i)[2][2], result[q].ce.mstd)
         max_ce_id_cvar = map(i -> findmax(i)[2][2], result[q].ce.cvar)
 
         if (distance)
-            W, P, b, D = fcn_spatial_weights(result[q].L.dims; boundary = 1, distance = true, bandwidth = sqrt(sum(dims.^2)),  α=2)
             contiguity_ev_rv_lambda = result[q].ef.ev_rv.solutions' * D * result[q].ef.cvar.solutions
             contiguity_mstd_lambda = (result[q].ef.mstd.solutions' * D * result[q].ef.mstd.solutions .- contiguity_ev_rv_lambda) ./ contiguity_ev_rv_lambda
             contiguity_cvar_lambda = (result[q].ef.cvar.solutions' * D * result[q].ef.cvar.solutions .- contiguity_ev_rv_lambda) ./ contiguity_ev_rv_lambda
@@ -139,7 +143,11 @@ function fcn_write_contiguity(result::AbstractArray, suffix = "", Q=1:5, distanc
     rename!(result_df, [:mstd, :cvar])
     result_df.alpha = repeat(α, 3);
     result_df.var = vcat(repeat(["median"], length(α)), repeat(["lb"], length(α)), repeat(["ub"], length(α)));
-    CSV.write("$(home_dir)/output/contiguity_$(suffix)_$(Q[end]).csv", result_df)
+    if (distance)
+        CSV.write("$(home_dir)/output/distance_$(suffix)_$(Q[end]).csv", result_df)
+    else
+        CSV.write("$(home_dir)/output/contiguity_$(suffix)_$(Q[end]).csv", result_df)
+    end
 end
 
 
@@ -192,7 +200,7 @@ function fcn_write_downside(result::AbstractArray, suffix = "", Q=1:5)
     result_df.var = vcat(repeat(["median"], length(α)), repeat(["lb"], length(α)), repeat(["ub"], length(α)));
     CSV.write("$(home_dir)/output/downside_$(suffix)_$(Q[end]).csv", result_df)
 
-    result_df = DataFrame(hcat(vcat(run_median_upside_mstd, run_lb_downside_cvar, run_ub_upside_mstd), vcat(run_median_upside_cvar, run_lb_upside_cvar, run_ub_upside_cvar)), :auto);
+    result_df = DataFrame(hcat(vcat(run_median_upside_mstd, run_lb_upside_mstd, run_ub_upside_mstd), vcat(run_median_upside_cvar, run_lb_upside_cvar, run_ub_upside_cvar)), :auto);
     rename!(result_df, [:mstd, :cvar])
     result_df.alpha = repeat(α, 3);
     result_df.var = vcat(repeat(["median"], length(α)), repeat(["lb"], length(α)), repeat(["ub"], length(α)));
