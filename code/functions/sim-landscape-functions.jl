@@ -173,9 +173,13 @@ function fcn_generate_landscape(dims=(40,40); S=(prod(dims)+1), yy=rand()*100, n
 
     W, P, b = fcn_spatial_weights(dims; boundary = 1, distance = true, bandwidth = sqrt(sum(dims.^2)),  α=2);
     X = rand(Normal(0,1), size(W,1))
-    Wp   = fcn_spatial_AR(W, S; X = X, ρ=0.9, σ=10) .+ yy;
+    Wp   = fcn_spatial_AR(W, S; X = X, ρ=0.9, σ=rand(Chisq(10))) .+ yy;
     Wp = Wp[b .== 0, :];
-    Wp[Wp .< 0] .= 0;
+    Wp[isless.(Wp,0)] .= 0;
+
+    if (sum(Wp .< 0) > 0)
+        throw("Some elements in Wp are less than zero")
+    end
 
     #pw   = fcn_spatial_AR(W, 1; X = rand(size(W,1),1), ρ=0.5, σ=5) |> vec; # Probability of shock
     #pw   = pw[b .== 0,:];
@@ -197,6 +201,18 @@ function fcn_get_location_scale(R::Matrix, budget::Real=100, pct_range = (5,95))
     location = percentile(ev_returns, pct_range[1])
     scale = percentile(ev_returns, pct_range[2]) - percentile(ev_returns, pct_range[1]);
     return location, scale
+end
+
+function fcn_get_w_random(R::Matrix, budget::Real=100, nsims::Real=100)
+    # Gets returns of a set of random x in the set
+    rand_soln = zeros(size(R, 1), nsims);
+
+    for sim in range(1, nsims)
+        s = randperm(size(R, 1))[1:budget];
+        rand_soln[s, sim] .= 1;
+    end
+
+    return mean(R' * rand_soln)
 end
 
 function fcn_map_ef(R::Matrix, optim_func::Function, budget::Real=100, λ::AbstractVector=0:0.1:1)

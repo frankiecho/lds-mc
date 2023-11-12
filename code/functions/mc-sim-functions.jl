@@ -1,6 +1,6 @@
 #home_dir = "/users/frankiecho/Documents/Github/lds-mc-julia"
 home_dir = "d:/Github/lds-mc"
-#include("$(home_dir)/code/functions/type-defs.jl")
+include("$(home_dir)/code/functions/type-defs.jl")
 include("$(home_dir)/code/functions/optim-functions.jl");
 include("$(home_dir)/code/functions/expected-utility-functions.jl")
 include("$(home_dir)/code/functions/sim-landscape-functions.jl")
@@ -26,8 +26,9 @@ function fcn_mc_sim(i, n_shocks=1000)
     ef = Result(ev_ef, ev_rv_ef, cvar_ef, mstd_ef)
 
     uf_type = "CRRA"
-    location, scale = fcn_get_location_scale(L.R)
-    utility_functions = map(a -> UtilityFunction(uf_type, a, location, scale), α);
+    #location, scale = fcn_get_location_scale(L.R)
+    w_random = fcn_get_w_random(L.R);
+    utility_functions = map(a -> UtilityFunction(uf_type, a , 0, w_random), α);
     ev_rv_ce = map(u -> fcn_evaluate_ef(ev_rv_ef, u), utility_functions);
     ev_ce = map(u -> fcn_evaluate_ef(ev_ef, u), utility_functions);
     cvar_ce = map(u -> fcn_evaluate_ef(cvar_ef, u), utility_functions)
@@ -50,15 +51,16 @@ function fcn_write_result(result::AbstractArray, suffix = "")
     ev_rv = @pipe [result[q].ce_max.ev_rv for q=Q] |> mapreduce(permutedims, vcat, _);
     cvar = @pipe [result[q].ce_max.cvar for q=Q] |> mapreduce(permutedims, vcat, _);
     mstd = @pipe [result[q].ce_max.mstd for q=Q] |> mapreduce(permutedims, vcat, _);
-
-    result_array = @pipe [ev ./ ev_rv, cvar./ ev_rv, mstd./ ev_rv, cvar ./ mstd] |> map(w -> w.-1,_);
+    
+    cols =  [:ev, :cvar, :mstd, :cvar_ev, :mstd_ev, :cvar_mstd];
+    result_array = @pipe [ev ./ ev_rv, cvar./ ev_rv, mstd./ ev_rv, cvar ./ ev, mstd ./ ev, cvar ./ mstd] |> map(w -> w.-1,_);
     result_mean = @pipe result_array |> map(x->mapslices(xx->percentile(xx, 50),x,dims=1),_) |> mapreduce(permutedims, hcat, _);
     result_lb = @pipe result_array |> map(x->mapslices(xx->percentile(xx, 5),x,dims=1),_) |> mapreduce(permutedims, hcat, _);
     result_ub = @pipe result_array |> map(x->mapslices(xx->percentile(xx, 95),x,dims=1),_) |> mapreduce(permutedims, hcat, _);
     result_min = @pipe result_array |> map(x->mapslices(xx->minimum(xx),x,dims=1),_) |> mapreduce(permutedims, hcat, _);
     result_max = @pipe result_array |> map(x->mapslices(xx->maximum(xx),x,dims=1),_) |> mapreduce(permutedims, hcat, _);
     result_df = DataFrame(vcat(result_mean, result_lb, result_ub, result_min, result_max), :auto);
-    rename!(result_df, [:ev,:cvar, :mstd, :cvar_mstd])
+    rename!(result_df, cols)
 
     result_df.var = vcat(repeat(["median"], length(α)), repeat(["lb"], length(α)), repeat(["ub"], length(α)), repeat(["min"], length(α)), repeat(["max"], length(α)));
     result_df.alpha = repeat(α, 5)
