@@ -33,9 +33,20 @@ p13 <- sp_weight %>%
   scale_fill_viridis_c(option = 'magma', direction = -1) +
   theme(legend.position = 'bottom', legend.title = element_blank())
 
-heatmap <- p11 + p12 + p13 + plot_annotation(tag_levels = 'a')
+# Decisions
+p14 <- sp_weight %>%
+  arrange(-x4) %>%
+  mutate(rank = 1:nrow(sp_weight)) %>%
+  mutate(x6 = factor(rank < 100, labels=c('No', 'Yes'))) %>%
+  ggplot(aes(x = x, y = y, fill = x6)) +
+  geom_tile(color = 'gray50') +
+  scale_fill_manual(values = c('#dddddd', '#009E73')) +
+  theme_void() +
+  theme(legend.position = 'bottom', legend.title = element_blank())
+
+heatmap <- p11 + p12 + p13 + p14 + plot_annotation(tag_levels = 'a') & plot_layout(nrow = 1)
 heatmap
-ggsave("plots/spatial_weight_heatmap.png", heatmap)
+ggsave("plots/spatial_weight_heatmap.png", heatmap, width = 1500, height = 500, units = 'px', scale = 2)
 
 ## Plot change in CE
 ce_df <- read.csv("output/ce_df_baseline_500.csv") %>%
@@ -79,7 +90,7 @@ ggsave("plots/delta_plot.png", delta_plot, units = 'cm', width = 20, height = 12
 
 
 ## Plot change in contiguity
-contiguity <- read_csv('output/contiguity_baseline_100.csv') |>
+contiguity <- read_csv('output/distance_baseline_500.csv') |>
   filter(alpha <= 30)
 contiguity |>
   pivot_longer(c('mstd','cvar')) |>
@@ -92,14 +103,14 @@ contiguity |>
   geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha, fill = name), alpha = 0.2) +
   geom_line(aes(x = alpha, y = median, color = name)) +
   scale_x_continuous("θ") +
-  scale_y_continuous("Connectivity index", labels = scales::percent) +
+  scale_y_continuous("Distance index (change from baseline)", labels = scales::percent, limits = c(-.02, .18)) +
   ggsci::scale_color_nejm() +
   ggsci::scale_fill_nejm() +
   ggpubr::theme_pubr() +
   coord_cartesian(expand = F) +
   theme(legend.title = element_blank())
 
-ggsave("plots/contiguity_plot.png", units = 'cm', width = 12, height = 12)
+ggsave("plots/distance_plot.png", units = 'cm', width = 15, height = 12)
 
 shock_likelihood <- lapply(seq(30,80,10), function(t) read_csv(paste0('output/likelihood__100_', t , '.csv'))) 
 names(shock_likelihood) <- seq(30,80,10)
@@ -123,3 +134,66 @@ shock_likelihood|>
   #facet_wrap(~threshold, scales = 'free_y') +
   theme(legend.title = element_blank())
 ggsave("plots/shock_likelihood_plot.png", units = 'cm', width = 12, height = 12)
+
+
+## Plot downsides
+downside <- read_csv('output/downside_baseline_500.csv')
+upside <- read_csv('output/upside_baseline_500.csv')
+risk_side <- bind_rows(list(downside=downside, upside=upside), .id = "side")
+
+risk_side |>
+  mutate(side = factor(side, c('downside', 'upside'), c('Downside risk', 'Upside gain'))) |>
+  filter(alpha <= 32) |>
+  pivot_longer(c('mstd','cvar')) |>
+  mutate(name = factor(name, c('mstd', 'cvar', 'ev'), c("M-SD", "M-CVaR", "EV"))) |>
+  pivot_wider(names_from = var, values_from = value) |>
+  ggplot() +
+  #geom_hline(yintercept = 0, color = 'gray50') +
+  #geom_ribbon(aes(ymin = min, ymax = max, x = alpha, fill = name), alpha = 0.15) +
+  geom_hline(yintercept = 0.05, color = 'gray50') +
+  geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha, fill = name), alpha = 0.2) +
+  geom_line(aes(x = alpha, y = median, color = name)) +
+  scale_x_continuous("θ", limits = c(-0, 32)) +
+  scale_y_continuous("Probability", labels = scales::percent, limits = c(0, 0.055)) +
+  ggsci::scale_color_nejm() +
+  ggsci::scale_fill_nejm() +
+  ggpubr::theme_pubr() +
+  facet_wrap(~side) +
+  coord_cartesian(expand = F) +
+  theme(legend.title = element_blank())
+ggsave("plots/downside_risk.png", units = 'cm', width = 20, height = 12)
+
+
+## Theta-lambda matching
+cvar_ce <- read_csv("output/cvar_ce.csv")
+lambda_vec <- seq(0, 1, 0.05)
+theta_vec <- seq(0, 50, 0.1)
+cvar_ce_norm <- purrr::map_dfr(cvar_ce, function(x) (x - max(x)) / (max(x) - min(x)))
+colnames(cvar_ce_norm) <- theta_vec
+lambda_max <- data.frame(
+  value = apply(cvar_ce_norm, 2, function(x) max(x)),
+  lambda = apply(cvar_ce_norm, 2, function(x) lambda_vec[which.max(x)]),
+  theta = as.character(theta_vec)
+)
+cvar_ce_norm$lambda <- lambda_vec
+
+plot_theta <- c(0, 2.5, 5, 7.5, 10)
+lambda_max_filter <- filter(lambda_max, theta %in% plot_theta) %>%
+  mutate(theta = factor(theta, plot_theta))
+cvar_ce_norm %>%
+  pivot_longer(as.character(seq(0, 50, 0.1)), names_to = "theta", values_to = "value") %>%
+  filter(theta %in% plot_theta) %>%
+  mutate(theta = factor(theta, plot_theta)) %>%
+  ggplot(aes(x = lambda, y = value, color = theta)) +
+  geom_hline(yintercept = 0, linetype = 2, color = '#aaaaaa') +
+  geom_point(data = lambda_max_filter) +
+  geom_line(linewidth = 0.8) +
+  see::scale_color_okabeito() +
+  scale_y_continuous("ΔCE") +
+  scale_x_continuous("𝜆")+
+  labs(color = "θ") +
+  coord_cartesian(ylim = c(-1, 0.2)) +
+  theme_pubr() +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+ggsave("plots/theta_lambda_matching.png", units = 'cm', width = 15, height = 12)
