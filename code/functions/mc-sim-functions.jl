@@ -1,5 +1,5 @@
-#home_dir = "/users/frankiecho/Documents/Github/lds-mc-julia"
-home_dir = "d:/Github/lds-mc"
+home_dir = "/users/frankiecho/Documents/Github/lds-mc-julia"
+#home_dir = "d:/Github/lds-mc"
 include("$(home_dir)/code/functions/type-defs.jl")
 include("$(home_dir)/code/functions/optim-functions.jl");
 include("$(home_dir)/code/functions/expected-utility-functions.jl")
@@ -7,14 +7,12 @@ include("$(home_dir)/code/functions/sim-landscape-functions.jl")
 
 using CSV
 
-α = 0:0.1:50
-λ = 0:0.1:1
-budget = 100;
+
 
 
 using Pipe
 
-function fcn_mc_sim(i, n_shocks=1000)
+function fcn_mc_sim(i, n_shocks=1000; α = 0:0.1:50, λ = 0:0.1:1, budget = 100)
     L = fcn_generate_landscape((40,40), n_shocks=n_shocks)
     #L = fcn_generate_landscape((10,10), yy = 10, n_shocks=n_shocks, shock_size=Poisson(1));
     ev_soln = fcn_optim_ev(-L.R; budget = budget);
