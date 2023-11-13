@@ -4,7 +4,7 @@ library(patchwork)
 library(ggsci)
 library(ggpubr)
 
-setwd("~/Documents/Github/lds-mc-julia/")
+setwd("~/Documents/Github/lds-mc/")
 
 ## Plot heatmaps
 sp_weight <- read.csv("output/spatial_weights.csv")
@@ -89,10 +89,9 @@ plot12 <- ce_df |>
 
 (delta_plot <- plot11 + plot12 + plot_layout(guides = "collect") & theme(legend.position = 'bottom') &  plot_annotation(tag_levels = 'a') )
 ggsave(paste0("plots/delta_plot_", i, ".png"), delta_plot, units = 'cm', width = 20, height = 12)
-}
 
 ## Plot change in contiguity
-contiguity <- read_csv('output/distance_baseline_500.csv') |>
+contiguity <- read_csv(paste0('output/distance_param_search_',i,'_10.csv')) |>
   filter(alpha <= 30)
 contiguity |>
   pivot_longer(c('mstd','cvar')) |>
@@ -112,35 +111,11 @@ contiguity |>
   coord_cartesian(expand = F) +
   theme(legend.title = element_blank())
 
-ggsave("plots/distance_plot.png", units = 'cm', width = 15, height = 12)
-
-shock_likelihood <- lapply(seq(30,80,10), function(t) read_csv(paste0('output/likelihood__100_', t , '.csv'))) 
-names(shock_likelihood) <- seq(30,80,10)
-shock_likelihood|>
-  bind_rows(.id='threshold') |>
-  filter(threshold == 50) |>
-  #filter(threshold %in% c(40,50,60)) |>
-  filter(alpha <= 30) |>
-  pivot_longer(c('mstd','cvar')) |>
-  mutate(name = factor(name, c('mstd', 'cvar', 'ev'), c("M-SD", "M-CVaR", "EV"))) |>
-  pivot_wider(names_from = var, values_from = value) |>
-  ggplot() +
-  #geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha, fill = name), alpha = 0.2) +
-  geom_line(aes(x = alpha, y = median, color = name)) +
-  scale_x_continuous("θ") +
-  scale_y_continuous("Probability", labels = scales::percent) +
-  ggsci::scale_color_nejm() +
-  ggsci::scale_fill_nejm() +
-  ggpubr::theme_pubr() +
-  coord_cartesian(expand = F, ylim = c(0.005,0.017)) +
-  #facet_wrap(~threshold, scales = 'free_y') +
-  theme(legend.title = element_blank())
-ggsave("plots/shock_likelihood_plot.png", units = 'cm', width = 12, height = 12)
-
+ggsave(paste0("plots/distance_plot", i, ".png"), units = 'cm', width = 15, height = 12)
 
 ## Plot downsides
-downside <- read_csv('output/downside_baseline_25.csv')
-upside <- read_csv('output/upside_baseline_25.csv')
+downside <- read_csv(paste0('output/downside_param_search_', i, '.csv'))
+upside <- read_csv(paste0('output/downside_param_search_', i, '.csv'))
 risk_side <- bind_rows(list(downside=downside, upside=upside), .id = "side")
 
 risk_side |>
@@ -162,8 +137,8 @@ risk_side |>
   facet_wrap(~side) +
   coord_cartesian(expand = F) +
   theme(legend.title = element_blank())
-ggsave("plots/downside_risk.png", units = 'cm', width = 20, height = 12)
-
+ggsave("plots/downside_risk_", i, "_10.png", units = 'cm', width = 20, height = 12)
+}
 
 ## Theta-lambda matching
 cvar_ce <- read_csv("output/cvar_ce.csv")

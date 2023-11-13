@@ -5,3 +5,4 @@ data/
 .RData
 .Rhistory
 plots/
+.DS_Store
