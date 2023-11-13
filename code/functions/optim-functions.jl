@@ -10,6 +10,11 @@
         # β: CVaR tail quantile (probability that costs are lower than value-at-risk)
         # λ: risk-aversion parameter for the objective function with EV and CVaR optimisation
 
+        if (λ==0)
+            x = fcn_optim_ev(Y; p = p, budget = budget);
+            return(x)
+        end
+
         N, K = size(Y);
         if ~isnothing(p)
             p = ones(K,1)/K;
@@ -32,6 +37,11 @@
     end
 
     function fcn_optim_mv(Y; budget = 1, λ = 1, p = ones(size(Y,2),1)/size(Y,2))
+        if (λ==0)
+            x = fcn_optim_ev(Y; p = p, budget = budget);
+            return(x)
+        end
+
         # Optimisation of mean-variance portfolio
         N, K = size(Y);
         Q = StatsBase.cov(Y',p); # Weighted covariance
@@ -52,6 +62,11 @@
     end
 
     function fcn_optim_mstd(Y; budget = 1, λ = 1, p = ones(size(Y,2),1)/size(Y,2))
+        if (λ==0)
+            x = fcn_optim_ev(Y; p = p, budget = budget);
+            return(x)
+        end
+        
         # Optimises an objective function of mean and standard deviation
         N, K = size(Y);
         Q = StatsBase.cov(Y',p); # Weighted covariance

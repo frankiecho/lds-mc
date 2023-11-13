@@ -6,15 +6,10 @@ include("$(home_dir)/code/functions/expected-utility-functions.jl")
 include("$(home_dir)/code/functions/sim-landscape-functions.jl")
 
 using CSV
-
-
-
-
 using Pipe
 
-function fcn_mc_sim(i, n_shocks=1000; α = 0:0.1:50, λ = 0:0.1:1, budget = 100)
-    L = fcn_generate_landscape((40,40), n_shocks=n_shocks)
-    #L = fcn_generate_landscape((10,10), yy = 10, n_shocks=n_shocks, shock_size=Poisson(1));
+function fcn_mc_sim(i, params::LandscapeParameters=LandscapeParameters((40,40), 10, 0.7, 5, 0.0001); α = 0:0.1:50, λ = 0:0.1:1, budget = 100)
+    L = fcn_generate_landscape(params.dims; yy=params.yy, ρ=params.ρ, σ=params.σ)
     ev_soln = fcn_optim_ev(-L.R; budget = budget);
     ev_rv_soln = fcn_optim_ev(-L.RV; budget = budget);
     ev_ef = EfficiencyFrontier(ev_soln, L.R' * ev_soln, [0], fcn_optim_ev);
@@ -40,11 +35,12 @@ function fcn_mc_sim(i, n_shocks=1000; α = 0:0.1:50, λ = 0:0.1:1, budget = 100)
     mstd_ce_max = map(summary_func, mstd_ce);
     ce_max = Result(ev_ce_max, ev_rv_ce_max, cvar_ce_max, mstd_ce_max)
 
-    println("Completed run $(i)")
+    
     return MCResult(ef, ce, ce_max, L)
 end
 
-function fcn_write_result(result::AbstractArray, suffix = "")
+function fcn_write_result(result::AbstractArray, suffix = ""; α = 0:0.1:50)
+    Q = 1:length(result);
     ev = @pipe [result[q].ce_max.ev for q=Q] |> mapreduce(permutedims, vcat, _);
     ev_rv = @pipe [result[q].ce_max.ev_rv for q=Q] |> mapreduce(permutedims, vcat, _);
     cvar = @pipe [result[q].ce_max.cvar for q=Q] |> mapreduce(permutedims, vcat, _);
@@ -59,7 +55,6 @@ function fcn_write_result(result::AbstractArray, suffix = "")
     result_max = @pipe result_array |> map(x->mapslices(xx->maximum(xx),x,dims=1),_) |> mapreduce(permutedims, hcat, _);
     result_df = DataFrame(vcat(result_mean, result_lb, result_ub, result_min, result_max), :auto);
     rename!(result_df, cols)
-
     result_df.var = vcat(repeat(["median"], length(α)), repeat(["lb"], length(α)), repeat(["ub"], length(α)), repeat(["min"], length(α)), repeat(["max"], length(α)));
     result_df.alpha = repeat(α, 5)
     CSV.write("$(home_dir)/output/ce_df_$(suffix)_$(Q[end]).csv", result_df)
@@ -102,7 +97,8 @@ function fcn_write_shock_exposure(result::AbstractArray, suffix = "", threshold 
     end
 end
 
-function fcn_write_contiguity(result::AbstractArray, suffix = "", Q=1:5, distance = false)
+function fcn_write_contiguity(result::AbstractArray, suffix = "", distance = false, α=0:0.1:50)
+    Q = 1:length(result);
     contiguity_mstd = zeros(length(α), length(Q));
     contiguity_cvar = zeros(length(α), length(Q));
     q=1
@@ -151,7 +147,8 @@ function fcn_write_contiguity(result::AbstractArray, suffix = "", Q=1:5, distanc
 end
 
 
-function fcn_write_downside(result::AbstractArray, suffix = "", Q=1:5)
+function fcn_write_downside(result::AbstractArray, suffix = "", α = 0:0.1:50)
+    Q = 1:length(result);
     mstd_downside_crra = zeros(length(α), length(Q));
     cvar_downside_crra = zeros(length(α), length(Q));
     mstd_upside_crra = zeros(length(α), length(Q));
@@ -159,8 +156,8 @@ function fcn_write_downside(result::AbstractArray, suffix = "", Q=1:5)
     for q=Q
         max_ce_id_mstd = map(i -> findmax(i)[2][2], result[q].ce.mstd)
         max_ce_id_cvar = map(i -> findmax(i)[2][2], result[q].ce.cvar)
-        lb = percentile(result[q].ef.ev_rv.returns, 5);
-        ub = percentile(result[q].ef.ev_rv.returns, 95);
+        lb = percentile(result[q].ef.ev.returns, 5);
+        ub = percentile(result[q].ef.ev.returns, 95);
     
         cvar_downside = mean(result[q].ef.cvar.returns .< lb, dims = 1)'
         mstd_downside = mean(result[q].ef.mstd.returns .< lb, dims = 1)'

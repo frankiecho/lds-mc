@@ -11,7 +11,6 @@ struct Landscape
     SS::Matrix # Shock location (binary)
     W::Matrix # Spatial weights
     nss::Vector # Number of shocks
-    shock_df::DataFrame # Shock locations
 end
 
 struct UtilityFunction
@@ -65,11 +64,10 @@ struct MCResult
     L::Landscape # Landscape
 end
 
-struct LandscapeParameters
+mutable struct LandscapeParameters
     dims::Tuple # Dimensions (n1 x n2)
     yy::Real # Base return
     ρ::Real # Spatial correlation
     σ::Real # Standard deviation of SAR process
-    φ::Real # Distance decay parameter
-    
+    η::Real # risk threshold
 end
