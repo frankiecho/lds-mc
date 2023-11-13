@@ -49,12 +49,14 @@ heatmap
 ggsave("plots/spatial_weight_heatmap.png", heatmap, width = 1500, height = 500, units = 'px', scale = 2)
 
 ## Plot change in CE
-ce_df <- read.csv("output/ce_df_baseline_500.csv") %>%
-  filter(alpha <= 30)
+for (i in 1:14) {
+ce_df <- read.csv(paste0("output/ce_df_param_search_", i, "_10.csv")) %>%
+  filter(alpha <= 100)
 
 plot11 <- ce_df |>
-  dplyr::select(-cvar_mstd) |>
-  pivot_longer(c('ev', 'cvar', 'mstd'), names_to = 'name', values_to = 'value') |>
+  dplyr::select(-cvar_mstd, -cvar, -mstd, -ev) |>
+  dplyr::rename(cvar = cvar_ev, mstd = mstd_ev) |>
+  pivot_longer(c('cvar', 'mstd'), names_to = 'name', values_to = 'value') |>
   mutate(name = factor(name, c('mstd', 'cvar', 'ev'), c("M-SD", "M-CVaR", "EV"))) |>
   pivot_wider(names_from = var, values_from = value) |>
   ggplot() +
@@ -71,7 +73,7 @@ plot11 <- ce_df |>
   theme(legend.title = element_blank())
 
 plot12 <- ce_df |>
-  dplyr::select(c(-ev, -cvar, -mstd)) |>
+  dplyr::select(c(-ev, -cvar, -mstd, -cvar_ev, -mstd_ev)) |>
   rename(value = cvar_mstd) |>
   pivot_wider(names_from = var, values_from = value) |>
   ggplot() +
@@ -86,8 +88,8 @@ plot12 <- ce_df |>
   ggpubr::theme_pubr()
 
 (delta_plot <- plot11 + plot12 + plot_layout(guides = "collect") & theme(legend.position = 'bottom') &  plot_annotation(tag_levels = 'a') )
-ggsave("plots/delta_plot.png", delta_plot, units = 'cm', width = 20, height = 12)
-
+ggsave(paste0("plots/delta_plot_", i, ".png"), delta_plot, units = 'cm', width = 20, height = 12)
+}
 
 ## Plot change in contiguity
 contiguity <- read_csv('output/distance_baseline_500.csv') |>
@@ -137,13 +139,12 @@ ggsave("plots/shock_likelihood_plot.png", units = 'cm', width = 12, height = 12)
 
 
 ## Plot downsides
-downside <- read_csv('output/downside_baseline_500.csv')
-upside <- read_csv('output/upside_baseline_500.csv')
+downside <- read_csv('output/downside_baseline_25.csv')
+upside <- read_csv('output/upside_baseline_25.csv')
 risk_side <- bind_rows(list(downside=downside, upside=upside), .id = "side")
 
 risk_side |>
   mutate(side = factor(side, c('downside', 'upside'), c('Downside risk', 'Upside gain'))) |>
-  filter(alpha <= 32) |>
   pivot_longer(c('mstd','cvar')) |>
   mutate(name = factor(name, c('mstd', 'cvar', 'ev'), c("M-SD", "M-CVaR", "EV"))) |>
   pivot_wider(names_from = var, values_from = value) |>
@@ -153,8 +154,8 @@ risk_side |>
   geom_hline(yintercept = 0.05, color = 'gray50') +
   geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha, fill = name), alpha = 0.2) +
   geom_line(aes(x = alpha, y = median, color = name)) +
-  scale_x_continuous("θ", limits = c(-0, 32)) +
-  scale_y_continuous("Probability", labels = scales::percent, limits = c(0, 0.055)) +
+  scale_x_continuous("θ") +
+  scale_y_continuous("Probability", labels = scales::percent) +
   ggsci::scale_color_nejm() +
   ggsci::scale_fill_nejm() +
   ggpubr::theme_pubr() +
