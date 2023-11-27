@@ -7,7 +7,7 @@ contiguity |>
   pivot_wider(names_from = var, values_from = value) |>
   ggplot() +
   #geom_hline(yintercept = 0, color = 'gray50') +
-  #geom_ribbon(aes(ymin = min, ymax = max, x = alpha, fill = name), alpha = 0.15) +
+  #geom_ribbon(aes(ymin = min, ymax = max, x = alpha, fill = name), alpha = 0.151) +
   geom_hline(yintercept = 0, color = 'gray50') +
   geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha, fill = name), alpha = 0.2) +
   geom_line(aes(x = alpha, y = median, color = name)) +
