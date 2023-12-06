@@ -49,7 +49,7 @@ heatmap
 ggsave("plots/spatial_weight_heatmap.png", heatmap, width = 1500, height = 500, units = 'px', scale = 2)
 
 ## Plot change in CE
-nsims = 100
+nsims = 60
 max_alpha = 100
 for (i in 1:28) {
 ce_df <- read_csv(paste0("output/ce_df_param_search_", i, "_", nsims, ".csv"), show_col_types = F) %>%
@@ -66,7 +66,7 @@ plot11 <- ce_df |>
   #geom_ribbon(aes(ymin = min, ymax = max, x = alpha, fill = name), alpha = 0.15) +
   geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha, fill = name), alpha = 0.2) +
   geom_line(aes(x = alpha, y = median, color = name)) +
-  scale_y_continuous("CE: percent difference from EV solution", labels = scales::percent) +
+  scale_y_continuous("CE: change from EV solution", labels = scales::percent) +
   scale_x_continuous("θ") +
   ggsci::scale_color_nejm() +
   ggsci::scale_fill_nejm() +
@@ -84,7 +84,7 @@ plot12 <- ce_df |>
   geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha), alpha = 0.2) +
   geom_line(aes(x = alpha, y = median)) +
   geom_hline(yintercept = 0, color = 'gray50') +
-  scale_y_continuous("Change from M-SD", labels = scales::percent) +
+  scale_y_continuous("CE: change from M-SD", labels = scales::percent) +
   scale_x_continuous("θ") +
   #coord_cartesian(expand = F) +
   ggpubr::theme_pubr()
