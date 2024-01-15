@@ -3,12 +3,12 @@ using CSV, Setfield
 include("../../code/functions/type-defs.jl")
 
 # Default parameters
-param_default = LandscapeParameters((20,20), 10, 0.8, 6, 0.01, 20, 0.99)
+param_default = LandscapeParameters((20, 20), 10, 0.8, 6, 0.01, 20, 0.99)
 param_vec = [param_default]
 nsims = 100
 
 # Vectors to test
-dims_vec = [(10,10), (30,30)]
+dims_vec = [(10, 10), (30, 30)]
 budget_vec = [40, 60, 80, 100]
 yy_vec = [0, 2, 4, 6, 8]
 ρ_vec = [0, 0.2, 0.4, 0.6]
@@ -59,4 +59,4 @@ for β in β_vec
 end
 
 param_df = DataFrame(param_vec)
-CSV.write("output/param_df_$(nsims).csv",param_df)
+CSV.write("../output/param_df_$(nsims).csv", param_df)

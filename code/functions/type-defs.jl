@@ -25,17 +25,17 @@ struct UtilityFunction
     CE::Function
 
     function UtilityFunction(type, α, location=1.0, scale=1.0)
-        fcn_scale = w -> (w .- location)./ scale;
-        fcn_scale_inv = w -> (w .* scale) .+ location;
-        if cmp(type, "CARA")==0
+        fcn_scale = w -> (w .- location) ./ scale
+        fcn_scale_inv = w -> (w .* scale) .+ location
+        if cmp(type, "CARA") == 0
             U = (w) -> (w |> fcn_scale |> w -> CARA(w, α))
             inv = (w) -> CARA_inv(w, α) |> fcn_scale_inv
-        elseif cmp(type, "CRRA")==0
-            U = (w) -> (w |> fcn_scale |> w -> CRRA(w.+1, α))
-            inv = (w) -> CRRA_inv(w, α) |> w->w.+1 |> fcn_scale_inv
+        elseif cmp(type, "CRRA") == 0
+            U = (w) -> CRRA_norm(fcn_scale(w) .+ 1, α)
+            inv = (w) -> fcn_scale_inv(CRRA_inv_norm(w, α)) .- 1
         else
-           U = (w) -> piecewise_linear(w |> fcn_scale, 0.0, α, 1.0)
-           inv = (w) -> w |> fcn_scale_inv
+            U = (w) -> piecewise_linear(w |> fcn_scale, 0.0, α, 1.0)
+            inv = (w) -> w |> fcn_scale_inv
         end
         eu = (w) -> EU(w, U)
         ce = (w) -> EU(w, U) |> inv
@@ -47,7 +47,7 @@ struct EfficiencyFrontier
     solutions::AbstractArray
     returns::AbstractArray # Returns for each solution under each scenario
     λ::AbstractVector
-    f::Function 
+    f::Function
 end
 
 struct Result

@@ -1,18 +1,19 @@
 library(tidyverse)
 library(patchwork)
 
-nsims = 60
+nsims = 5
 
 options(scipen = 999)
 param_table <- read_csv(sprintf("output/param_df_%s.csv", nsims)) %>%
   mutate(η = as.character(η))
 param_table <- param_table[1:(nrow(param_table)),] %>%
   mutate(N = ifelse(dims=='(10, 10)', 100, ifelse(dims=='(30, 30)', 900, 400)))
+param_table <- param_table[1:26,]
 param_table$run <- 1:nrow(param_table)
 
 runs = 1:nrow(param_table)
-alpha_vec <- c(0, 15, 30)
-alpha_lab <- c(`0` = 'θ=0', `15` = 'θ=15', `30` = 'θ=30')
+alpha_vec <- c(0, 5, 10)
+alpha_lab <- c(`0` = 'θ=0', `10` = 'θ=10', `20` = 'θ=20')
 
 ce_df <- lapply(runs, \(i) read_csv(paste0("output/ce_df_param_search_", i, "_", nsims, ".csv"), show_col_types = F)) %>%
   lapply(\(x) filter(x, alpha %in% alpha_vec)) %>%
@@ -58,3 +59,4 @@ plt <- fcn_generate_mc_lineplots('ρ', hide_y = F) + fcn_generate_mc_lineplots('
   plot_layout(nrow = 1, guides = 'collect')
 
 ggsave('plots/mc_sim_plot_ev.png', plt, scale = 2, width = 2000, height = 1000, units = 'px')
+
