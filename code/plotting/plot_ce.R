@@ -49,9 +49,11 @@ heatmap
 ggsave("plots/spatial_weight_heatmap.png", heatmap, width = 1500, height = 500, units = 'px', scale = 2)
 
 ## Plot change in CE
-for (i in 1:14) {
-ce_df <- read.csv(paste0("output/ce_df_param_search_", i, "_10.csv")) %>%
-  filter(alpha <= 100)
+nsims = 60
+max_alpha = 100
+for (i in 1:28) {
+ce_df <- read_csv(paste0("output/ce_df_param_search_", i, "_", nsims, ".csv"), show_col_types = F) %>%
+  filter(alpha <= max_alpha)
 
 plot11 <- ce_df |>
   dplyr::select(-cvar_mstd, -cvar, -mstd, -ev) |>
@@ -64,12 +66,12 @@ plot11 <- ce_df |>
   #geom_ribbon(aes(ymin = min, ymax = max, x = alpha, fill = name), alpha = 0.15) +
   geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha, fill = name), alpha = 0.2) +
   geom_line(aes(x = alpha, y = median, color = name)) +
-  scale_y_continuous("Change from baseline", labels = scales::percent) +
+  scale_y_continuous("CE: change from EV solution", labels = scales::percent) +
   scale_x_continuous("θ") +
   ggsci::scale_color_nejm() +
   ggsci::scale_fill_nejm() +
   ggpubr::theme_pubr() +
-  coord_cartesian(expand = F) +
+  #coord_cartesian(expand = F) +
   theme(legend.title = element_blank())
 
 plot12 <- ce_df |>
@@ -82,17 +84,17 @@ plot12 <- ce_df |>
   geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha), alpha = 0.2) +
   geom_line(aes(x = alpha, y = median)) +
   geom_hline(yintercept = 0, color = 'gray50') +
-  scale_y_continuous("Change from M-SD", labels = scales::percent) +
+  scale_y_continuous("CE: change from M-SD", labels = scales::percent) +
   scale_x_continuous("θ") +
-  coord_cartesian(expand = F) +
+  #coord_cartesian(expand = F) +
   ggpubr::theme_pubr()
 
 (delta_plot <- plot11 + plot12 + plot_layout(guides = "collect") & theme(legend.position = 'bottom') &  plot_annotation(tag_levels = 'a') )
 ggsave(paste0("plots/delta_plot_", i, ".png"), delta_plot, units = 'cm', width = 20, height = 12)
 
 ## Plot change in contiguity
-contiguity <- read_csv(paste0('output/distance_param_search_',i,'_10.csv')) |>
-  filter(alpha <= 30)
+contiguity <- read_csv(paste0('output/distance_param_search_',i,'_', nsims, '.csv'), show_col_types = F) |>
+  filter(alpha <= max_alpha)
 contiguity |>
   pivot_longer(c('mstd','cvar')) |>
   mutate(name = factor(name, c('mstd', 'cvar', 'ev'), c("M-SD", "M-CVaR", "EV"))) |>
@@ -104,18 +106,18 @@ contiguity |>
   geom_ribbon(aes(ymin = lb, ymax = ub, x = alpha, fill = name), alpha = 0.2) +
   geom_line(aes(x = alpha, y = median, color = name)) +
   scale_x_continuous("θ") +
-  scale_y_continuous("Distance index (change from baseline)", labels = scales::percent, limits = c(-.02, .18)) +
+  scale_y_continuous("Distance index (change from baseline)", labels = scales::percent) +
   ggsci::scale_color_nejm() +
   ggsci::scale_fill_nejm() +
   ggpubr::theme_pubr() +
   coord_cartesian(expand = F) +
   theme(legend.title = element_blank())
 
-ggsave(paste0("plots/distance_plot", i, ".png"), units = 'cm', width = 15, height = 12)
+ggsave(paste0("plots/distance_plot_", i, ".png"), units = 'cm', width = 15, height = 12)
 
 ## Plot downsides
-downside <- read_csv(paste0('output/downside_param_search_', i, '.csv'))
-upside <- read_csv(paste0('output/downside_param_search_', i, '.csv'))
+downside <- read_csv(paste0('output/downside_param_search_', i, '_',nsims,'.csv'), show_col_types = F)
+upside <- read_csv(paste0('output/downside_param_search_', i, '_',nsims,'.csv'), show_col_types = F)
 risk_side <- bind_rows(list(downside=downside, upside=upside), .id = "side")
 
 risk_side |>
@@ -137,7 +139,7 @@ risk_side |>
   facet_wrap(~side) +
   coord_cartesian(expand = F) +
   theme(legend.title = element_blank())
-ggsave("plots/downside_risk_", i, "_10.png", units = 'cm', width = 20, height = 12)
+ggsave(paste0("plots/downside_risk_", i, ".png"), units = 'cm', width = 20, height = 12)
 }
 
 ## Theta-lambda matching
