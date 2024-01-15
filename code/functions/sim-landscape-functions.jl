@@ -208,9 +208,9 @@ function fcn_get_w_random(R::Matrix, budget::Real=100, nsims::Real=100)
     return mean(R' * rand_soln)
 end
 
-function fcn_map_ef(R::Matrix, optim_func::Function, budget::Real=100, λ::AbstractVector=0:0.1:1)
+function fcn_map_ef(R::Matrix, optim_func::Function, budget::Real=100, λ::AbstractVector=0:0.1:1, β::Real=0.9)
     # Maps a given function to identify the efficiency frontier across λ values
-    solutions = map(l->optim_func(-R; budget = budget, λ=l),λ) |> e->mapreduce(permutedims, vcat, e) |> transpose
+    solutions = map(l->optim_func(-R; budget = budget, λ=l, β=β),λ) |> e->mapreduce(permutedims, vcat, e) |> transpose
     RS = R' * solutions;
     ef = EfficiencyFrontier(solutions, RS, λ, optim_func);
     return ef

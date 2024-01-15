@@ -2,7 +2,7 @@
     using Gurobi, JuMP, Statistics, StatsBase, Distributed, CovarianceEstimation
     GRB_ENV = Gurobi.Env();
     # Optimisation of conditional value-at-risk with JuMP
-    function fcn_optim_cvar(Y; p = ones(size(Y,2),1)/size(Y,2), budget = 1, β = 0.9, λ::Float64 = 1.0)
+    function fcn_optim_cvar(Y; p = ones(size(Y,2),1)/size(Y,2), budget = 1, β::Real = 0.9, λ::Float64 = 1.0)
         # Optimizes the conditional value-at-risk of a portfolio with N assets
         # Y: a N by K matrix, with K realisations of the uncertain vector of costs
         # p: probability of K events
@@ -61,7 +61,7 @@
         return(value.(x));
     end
 
-    function fcn_optim_mstd(Y; budget = 1, λ = 1, p = ones(size(Y,2),1)/size(Y,2))
+    function fcn_optim_mstd(Y; budget = 1, λ = 1, p = ones(size(Y,2),1)/size(Y,2), β::Real=0)
         if (λ==0)
             x = fcn_optim_ev(Y; p = p, budget = budget);
             return(x)

@@ -8,20 +8,21 @@ include("$(home_dir)/code/functions/sim-landscape-functions.jl")
 using CSV
 using Pipe
 
-function fcn_mc_sim(i, params::LandscapeParameters=LandscapeParameters((40,40), 10, 0.7, 5, 0.0001); α = 0:0.1:50, λ = 0:0.1:1, budget = 100)
-    L = fcn_generate_landscape(params.dims; yy=params.yy, ρ=params.ρ, σ=params.σ)
+function fcn_mc_sim(i, params::LandscapeParameters=LandscapeParameters((40,40), 10, 0.7, 5, 0.0001, 100, 0.99); α = 0:0.1:50, λ = 0:0.1:1)
+    budget = params.budget
+    L = fcn_generate_landscape(params.dims; yy=params.yy, ρ=params.ρ, σ=params.σ, η=params.η)
     ev_soln = fcn_optim_ev(-L.R; budget = budget);
     ev_rv_soln = fcn_optim_ev(-L.RV; budget = budget);
     ev_ef = EfficiencyFrontier(ev_soln, L.R' * ev_soln, [0], fcn_optim_ev);
     ev_rv_ef = EfficiencyFrontier(ev_rv_soln, L.R' * ev_rv_soln, [0], fcn_optim_ev);
-    cvar_ef = fcn_map_ef(L.R, fcn_optim_cvar, budget, λ)
-    mstd_ef = fcn_map_ef(L.R, fcn_optim_mstd, budget, λ)
+    cvar_ef = fcn_map_ef(L.R, fcn_optim_cvar, budget, λ, params.β)
+    mstd_ef = fcn_map_ef(L.R, fcn_optim_mstd, budget, λ, 0)
     ef = Result(ev_ef, ev_rv_ef, cvar_ef, mstd_ef)
 
     uf_type = "CRRA"
     #location, scale = fcn_get_location_scale(L.R)
-    w_random = fcn_get_w_random(L.R);
-    utility_functions = map(a -> UtilityFunction(uf_type, a , 0, w_random), α);
+    w = mean(L.R' * ev_soln);
+    utility_functions = map(a -> UtilityFunction(uf_type, a , 0, w), α);
     ev_rv_ce = map(u -> fcn_evaluate_ef(ev_rv_ef, u), utility_functions);
     ev_ce = map(u -> fcn_evaluate_ef(ev_ef, u), utility_functions);
     cvar_ce = map(u -> fcn_evaluate_ef(cvar_ef, u), utility_functions)
@@ -111,13 +112,13 @@ function fcn_write_contiguity(result::AbstractArray, suffix = "", distance = fal
         max_ce_id_cvar = map(i -> findmax(i)[2][2], result[q].ce.cvar)
 
         if (distance)
-            contiguity_ev_rv_lambda = result[q].ef.ev_rv.solutions' * D * result[q].ef.cvar.solutions
-            contiguity_mstd_lambda = (result[q].ef.mstd.solutions' * D * result[q].ef.mstd.solutions .- contiguity_ev_rv_lambda) ./ contiguity_ev_rv_lambda
-            contiguity_cvar_lambda = (result[q].ef.cvar.solutions' * D * result[q].ef.cvar.solutions .- contiguity_ev_rv_lambda) ./ contiguity_ev_rv_lambda
+            contiguity_ev_lambda = result[q].ef.ev.solutions' * D * result[q].ef.ev.solutions
+            contiguity_mstd_lambda = (map((i) -> result[q].ef.mstd.solutions[:,i]' * D * result[q].ef.mstd.solutions[:,i], 1:size(result[q].ef.mstd.solutions,2)) .- contiguity_ev_lambda) ./ contiguity_ev_lambda
+            contiguity_cvar_lambda = (map((i) -> result[q].ef.cvar.solutions[:,i]' * D * result[q].ef.cvar.solutions[:,i], 1:size(result[q].ef.cvar.solutions,2)) .- contiguity_ev_lambda) ./ contiguity_ev_lambda
         else
-            contiguity_ev_rv_lambda = result[q].ef.ev_rv.solutions' * result[q].L.W * result[q].ef.cvar.solutions
-            contiguity_mstd_lambda = (result[q].ef.mstd.solutions' * result[q].L.W * result[q].ef.mstd.solutions .- contiguity_ev_rv_lambda) ./ contiguity_ev_rv_lambda
-            contiguity_cvar_lambda = (result[q].ef.cvar.solutions' * result[q].L.W * result[q].ef.cvar.solutions .- contiguity_ev_rv_lambda) ./ contiguity_ev_rv_lambda
+            contiguity_ev_lambda = result[q].ef.ev.solutions' * result[q].L.W * result[q].ef.ev.solutions
+            contiguity_mstd_lambda = (map((i) -> result[q].ef.mstd.solutions[:,i]' * result[q].L.W * result[q].ef.mstd.solutions[:,i], 1:size(result[q].ef.mstd.solutions,2)) .- contiguity_ev_lambda) ./ contiguity_ev_lambda
+            contiguity_cvar_lambda = (map((i) -> result[q].ef.cvar.solutions[:,i]' * result[q].L.W * result[q].ef.cvar.solutions[:,i], 1:size(result[q].ef.cvar.solutions,2)) .- contiguity_ev_lambda) ./ contiguity_ev_lambda
         end
         for (i,x)=enumerate(max_ce_id_mstd)
             contiguity_mstd[i,q] = contiguity_mstd_lambda[x]
@@ -147,7 +148,7 @@ function fcn_write_contiguity(result::AbstractArray, suffix = "", distance = fal
 end
 
 
-function fcn_write_downside(result::AbstractArray, suffix = "", α = 0:0.1:50)
+function fcn_write_downside(result::AbstractArray, suffix = "", α = 0:0.1:50, pct = (5,95))
     Q = 1:length(result);
     mstd_downside_crra = zeros(length(α), length(Q));
     cvar_downside_crra = zeros(length(α), length(Q));
@@ -156,13 +157,13 @@ function fcn_write_downside(result::AbstractArray, suffix = "", α = 0:0.1:50)
     for q=Q
         max_ce_id_mstd = map(i -> findmax(i)[2][2], result[q].ce.mstd)
         max_ce_id_cvar = map(i -> findmax(i)[2][2], result[q].ce.cvar)
-        lb = percentile(result[q].ef.ev.returns, 5);
-        ub = percentile(result[q].ef.ev.returns, 95);
+        lb = percentile(result[q].ef.ev.returns, pct[1]);
+        ub = percentile(result[q].ef.ev.returns, pct[2]);
     
-        cvar_downside = mean(result[q].ef.cvar.returns .< lb, dims = 1)'
-        mstd_downside = mean(result[q].ef.mstd.returns .< lb, dims = 1)'
-        cvar_upside = mean(result[q].ef.cvar.returns .> ub, dims = 1)'
-        mstd_upside = mean(result[q].ef.mstd.returns .> ub, dims = 1)'
+        cvar_downside = mean(result[q].ef.cvar.returns .<= lb, dims = 1)'
+        mstd_downside = mean(result[q].ef.mstd.returns .<= lb, dims = 1)'
+        cvar_upside = mean(result[q].ef.cvar.returns .>= ub, dims = 1)'
+        mstd_upside = mean(result[q].ef.mstd.returns .>= ub, dims = 1)'
     
         for (i,x)=enumerate(max_ce_id_mstd)
             mstd_downside_crra[i,q] = mstd_downside[x]

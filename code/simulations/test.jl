@@ -1,11 +1,6 @@
-using Distributions, Plots
-S = 160000
-N = 1600;
-p = 0.0001;
-dist=Distributions.TDist(3);
-threshold = quantile(dist, 1-p);
-ζ = rand(dist, S);
-shock_states = findall(x -> x .> threshold, ζ)
-shock_size = Int.(ceil.((N/100).*(ζ[shock_states].-threshold)));
-
-histogram(shock_size)
+include("../../code/functions/type-defs.jl")
+include("../../code/functions/mc-sim-functions.jl")
+α = 0:0.1:100
+test_param = LandscapeParameters((10,10), 0, 0.5, 0.5, 0.0001, 0.9)
+result = map((ii) -> fcn_mc_sim(ii, test_param; λ = 0:0.05:1, α=α), 1:1);
+fcn_write_contiguity(result, "param_search", true, 0:0.1:100)

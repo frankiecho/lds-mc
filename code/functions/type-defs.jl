@@ -70,4 +70,6 @@ mutable struct LandscapeParameters
     ρ::Real # Spatial correlation
     σ::Real # Standard deviation of SAR process
     η::Real # risk threshold
+    budget::Real # Budget
+    β::Real
 end

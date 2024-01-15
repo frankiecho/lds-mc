@@ -1,6 +1,6 @@
 using Distributed, JLD2
 
-addprocs(19);
+addprocs(22);
 @everywhere using Gurobi
 using Gurobi
 
@@ -17,11 +17,12 @@ using Gurobi
     
     function fcn_mc_sim_i(i)
         α = 0:0.1:100
-        result = map((ii) -> fcn_mc_sim(ii, param_vec[i]; λ = 0:0.05:1, α=α), 1:10);
+        result = map((ii) -> fcn_mc_sim(ii, param_vec[i]; λ = 0:0.05:1, α=α), 1:nsims);
         fcn_write_result(result, "param_search_$(i)"; α=α);
         fcn_write_downside(result, "param_search_$(i)", 0:0.1:100);
         fcn_write_contiguity(result, "param_search_$(i)",  true, 0:0.1:100);
         println("Completed run $(i)")
+        return
     end
 end
 
