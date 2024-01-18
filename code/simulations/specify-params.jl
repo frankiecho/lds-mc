@@ -3,18 +3,18 @@ using CSV, Setfield
 include("../../code/functions/type-defs.jl")
 
 # Default parameters
-param_default = LandscapeParameters((20,20), 10, 0.8, 6, 0.01, 20, 0.99)
+param_default = LandscapeParameters((20,20), 100, 0.8, 6, 0.01, 20, 0.99)
 param_vec = [param_default]
-nsims = 100
+nsims = 5
 
 # Vectors to test
-dims_vec = [(10,10), (30,30)]
+dims_vec = []
 budget_vec = [40, 60, 80, 100]
-yy_vec = [0, 2, 4, 6, 8]
+yy_vec = [300, 1000, 10000]
 ρ_vec = [0, 0.2, 0.4, 0.6]
 σ_vec = [2, 4, 8, 10]
-η_vec = [0.1, 0.05, 0.001, 0.0001, 0.00001, 0]
-β_vec = [0.9, 0.95]
+η_vec = [0.1, 0.05, 0.001, 0.0001, 0.00001, 0] 
+β_vec = [0.5, 0.7, 0.9, 0.95]
 
 for budget in budget_vec
     local param_t = deepcopy(param_default)

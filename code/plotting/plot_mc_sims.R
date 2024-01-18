@@ -1,7 +1,7 @@
 library(tidyverse)
 library(patchwork)
 
-nsims = 60
+nsims = 2
 
 options(scipen = 999)
 param_table <- read_csv(sprintf("output/param_df_%s.csv", nsims)) %>%
