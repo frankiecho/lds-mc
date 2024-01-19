@@ -59,4 +59,4 @@ for β in β_vec
 end
 
 param_df = DataFrame(param_vec)
-CSV.write("output/param_df_$(nsims).csv",param_df)
+CSV.write("../output/param_df_$(nsims).csv", param_df)

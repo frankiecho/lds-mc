@@ -49,7 +49,7 @@ heatmap
 ggsave("plots/spatial_weight_heatmap.png", heatmap, width = 1500, height = 500, units = 'px', scale = 2)
 
 ## Plot change in CE
-nsims = 60
+nsims = 5
 max_alpha = 100
 for (i in 1:28) {
 ce_df <- read_csv(paste0("output/ce_df_param_search_", i, "_", nsims, ".csv"), show_col_types = F) %>%
