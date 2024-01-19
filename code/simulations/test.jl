@@ -1,5 +1,5 @@
 using Revise, DataFrames, Glob, Random, Pipe, ProgressMeter, CSV, Plots
-#cd("/Users/frankiecho/Documents/Github/lds-mc")
+cd("/Users/frankiecho/Documents/Github/lds-mc")
 include("../../code/functions/type-defs.jl")
 include("../../code/functions/optim-functions.jl");
 include("../../code/functions/expected-utility-functions.jl")

@@ -150,7 +150,7 @@ function fcn_reshape_lds(D, dims)
     return reshape(D, dims_round)
 end
 
-function fcn_generate_landscape(dims=(40, 40); S=(prod(dims) + 1), yy=0, ρ=rand() * 0.99, σ=rand(Chisq(10)), η=1 / prod(dims))
+function fcn_generate_landscape(dims=(40, 40); S=(prod(dims) + 1), yy=0, ρ=rand() * 0.99, σ=rand(Chisq(10)), η=1 / prod(dims), shocks=(true, true))
     # Generates a (n1 x n2) grid cells of landscape describing benefits of protecting each cell, with random shocks that wipe out returns in a given set of cells under every scenario.
 
     # dims: dimensions of the landscape grid
@@ -163,17 +163,19 @@ function fcn_generate_landscape(dims=(40, 40); S=(prod(dims) + 1), yy=0, ρ=rand
     #   Wp: spatially-autocorrelated "base" benefits
     #   SS: shock locations
     #   pw_rs: probability of shock (spatially-autocorrelated)
-    shock_value = -yy
+    positive_shock, negative_shock = shocks
+
+    shock_value = yy
 
     W, P, b = fcn_spatial_weights(dims; boundary=1, distance=true, bandwidth=sqrt(sum(dims .^ 2)), α=2)
-    X = rand(Normal(0, 1), size(W, 1))
+    X = rand(Normal(50, 1), size(W, 1))
     Wp = fcn_spatial_AR(W, S; X=X, ρ=ρ, σ=σ)
     Wp = Wp[b.==0, :]
-    Wp[isless.(Wp, 0)] .= 0
+    #Wp[isless.(Wp, 0)] .= 0
 
-    if (sum(Wp .< 0) > 0)
-        throw("Some elements in Wp are less than zero")
-    end
+    #if (sum(Wp .< 0) > 0)
+    #    throw("Some elements in Wp are less than zero")
+    #end
 
     #pw   = fcn_spatial_AR(W, 1; X = rand(size(W,1),1), ρ=0.5, σ=5) |> vec; # Probability of shock
     #pw   = pw[b .== 0,:];
@@ -181,13 +183,21 @@ function fcn_generate_landscape(dims=(40, 40); S=(prod(dims) + 1), yy=0, ρ=rand
     #pw   = pw ./ sum(pw);
     #SS, nss, sl   = fcn_spatial_shock(W[b .== 0, b .== 0], S, n_shocks, shock_size, p=vec(pw));
 
-    #XR = Wp[:, rand(1:size(Wp, 2))]
-    XR = vec(mean(Wp, dims=2))
+    XR = Wp[:, rand(1:size(Wp, 2))]
+    #XR = vec(mean(Wp, dims=2))
+    XR[XR.<0] .= 0
     SS, nss = fcn_spatial_shock_gev(W[b.==0, b.==0], S, XR; p=η)
 
     Wps = copy(Wp)
-    Wps[isless.(1e-2, SS)] .= shock_value
-    Wps[isless.(Wps, shock_value)] .= shock_value
+    if (positive_shock)
+        SSP, nssp = fcn_spatial_shock_gev(W[b.==0, b.==0], S, XR; p=η)
+        Wps[isless.(1e-2, SSP)] = Wps[isless.(1e-2, SSP)] .+ shock_value
+    end
+
+    if (negative_shock)
+        Wps[isless.(1e-2, SS)] .= -shock_value
+        Wps[isless.(Wps, -shock_value)] .= -shock_value
+    end
     #pw_rs = fcn_reshape_lds(pw, dims);
 
     return Landscape(dims, Wps, Wp, SS, W[b.==0, b.==0], nss)
@@ -230,6 +240,6 @@ end
 
 function fcn_max_lambda(u::UtilityFunction, R::Matrix, optim_func::Function, budget::Real=100, β::Real=0.9, w0::Real=0)
     # Lambda that optimises CE
-    l = Optim.optimize(l -> -u.CE((1 / w0) .* (w0 .+ R' * optim_func(-R; budget=budget, λ=l, β=β))), 0.0, 1.0)
-    return (Optim.minimum(l), Optim.minimizer(l))
+    l = optimize(l -> -u.CE((1 / w0) .* (w0 .+ R' * optim_func(-R; budget=budget, λ=l, β=β))), 0.0, 1.0)
+    return Optim.minimizer(l)
 end

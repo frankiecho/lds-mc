@@ -72,4 +72,5 @@ mutable struct LandscapeParameters
     η::Real # risk threshold
     budget::Real # Budget
     β::Real
+    shocks::Tuple
 end

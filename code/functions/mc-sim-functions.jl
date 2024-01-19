@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-#home_dir = "/users/frankiecho/Documents/Github/lds-mc"
-home_dir = "d:/Github/lds-mc"
-=======
 home_dir = "/users/frankiecho/Documents/Github/lds-mc"
 #home_dir = "d:/Github/lds-mc"
->>>>>>> c5888b2de0218162552d90d5d0b234e359e35561
 include("$(home_dir)/code/functions/type-defs.jl")
 include("$(home_dir)/code/functions/optim-functions.jl");
 include("$(home_dir)/code/functions/expected-utility-functions.jl")
@@ -13,22 +8,11 @@ include("$(home_dir)/code/functions/sim-landscape-functions.jl")
 using CSV
 using Pipe
 
-function fcn_mc_sim(i, params::LandscapeParameters=LandscapeParameters((40, 40), 10, 0.7, 5, 0.0001, 100, 0.99); α=0:0.1:50, λ=0:0.1:1)
-<<<<<<< HEAD
+function fcn_mc_sim(i, params::LandscapeParameters=LandscapeParameters((40, 40), 10, 0.7, 5, 0.0001, 100, 0.99, (false, true)); α=0:0.1:50, λ=0:0.1:1)
 
 
-=======
->>>>>>> c5888b2de0218162552d90d5d0b234e359e35561
     budget = params.budget
-    w0 = params.budget .* params.yy + 1 # Initial wealth
     L = fcn_generate_landscape(params.dims; yy=params.yy, ρ=params.ρ, σ=params.σ, η=params.η)
-<<<<<<< HEAD
-
-    # Define utility functions
-    uf_type = "CRRA"
-    utility_functions = map(a -> UtilityFunction(uf_type, a, -w0, w0), α)
-
-    # Solve
     ev_soln = fcn_optim_ev(-L.R; budget=budget)
     ev_rv_soln = fcn_optim_ev(-L.RV; budget=budget)
     ev_ef = EfficiencyFrontier(ev_soln, w0 .+ L.R' * ev_soln, [0], fcn_optim_ev)
@@ -42,23 +26,10 @@ function fcn_mc_sim(i, params::LandscapeParameters=LandscapeParameters((40, 40),
     mstd_ef = fcn_map_ef(L.R, fcn_optim_mstd, budget, λ, 0, w0)
     ef = Result(ev_ef, ev_rv_ef, cvar_ef, mstd_ef)
 
-    #location, scale = fcn_get_location_scale(L.R, params.budget, (0, 100))
-    #w = mean(L.R' * ev_soln)
-
-=======
-    ev_soln = fcn_optim_ev(-L.R; budget=budget)
-    ev_rv_soln = fcn_optim_ev(-L.RV; budget=budget)
-    ev_ef = EfficiencyFrontier(ev_soln, L.R' * ev_soln, [0], fcn_optim_ev)
-    ev_rv_ef = EfficiencyFrontier(ev_rv_soln, L.R' * ev_rv_soln, [0], fcn_optim_ev)
-    cvar_ef = fcn_map_ef(L.R, fcn_optim_cvar, budget, λ, params.β)
-    mstd_ef = fcn_map_ef(L.R, fcn_optim_mstd, budget, λ, 0)
-    ef = Result(ev_ef, ev_rv_ef, cvar_ef, mstd_ef)
-
     uf_type = "CRRA"
     #location, scale = fcn_get_location_scale(L.R)
     w = mean(L.R' * ev_soln)
     utility_functions = map(a -> UtilityFunction(uf_type, a, 0, w), α)
->>>>>>> c5888b2de0218162552d90d5d0b234e359e35561
     ev_rv_ce = map(u -> fcn_evaluate_ef(ev_rv_ef, u), utility_functions)
     ev_ce = map(u -> fcn_evaluate_ef(ev_ef, u), utility_functions)
     cvar_ce = map(u -> fcn_evaluate_ef(cvar_ef, u), utility_functions)
@@ -68,15 +39,8 @@ function fcn_mc_sim(i, params::LandscapeParameters=LandscapeParameters((40, 40),
     summary_func = maximum
     ev_ce_max = map(summary_func, ev_ce)
     ev_rv_ce_max = map(summary_func, ev_rv_ce)
-<<<<<<< HEAD
-    #cvar_ce_max = map(summary_func, cvar_ce)
-    #mstd_ce_max = map(summary_func, mstd_ce)
-    cvar_ce_max = map(u -> fcn_max_lambda(u, L.R, fcn_optim_cvar, params.budget, params.β, w0)[1], utility_functions)
-    mstd_ce_max = map(u -> fcn_max_lambda(u, L.R, fcn_optim_mstd, params.budget, 0, w0)[1], utility_functions)
-=======
     cvar_ce_max = map(summary_func, cvar_ce)
     mstd_ce_max = map(summary_func, mstd_ce)
->>>>>>> c5888b2de0218162552d90d5d0b234e359e35561
     ce_max = Result(ev_ce_max, ev_rv_ce_max, cvar_ce_max, mstd_ce_max)
 
 
