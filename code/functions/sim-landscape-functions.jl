@@ -183,8 +183,8 @@ function fcn_generate_landscape(dims=(40, 40); S=(prod(dims) + 1), yy=0, ρ=rand
     #pw   = pw ./ sum(pw);
     #SS, nss, sl   = fcn_spatial_shock(W[b .== 0, b .== 0], S, n_shocks, shock_size, p=vec(pw));
 
-    #XR = Wp[:, rand(1:size(Wp, 2))]
-    XR = vec(mean(Wp, dims=2))
+    XR = Wp[:, rand(1:size(Wp, 2))]
+    #XR = vec(mean(Wp, dims=2))
     XR[XR.<0] .= 0
     SS, nss = fcn_spatial_shock_gev(W[b.==0, b.==0], S, XR; p=η)
 
