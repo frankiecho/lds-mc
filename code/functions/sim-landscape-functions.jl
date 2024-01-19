@@ -1,5 +1,5 @@
 # Functions to simulate returns in a randomly generated landscape
-using SparseArrays, LinearAlgebra, Random, Distributions, Revise, ThreadsX, DataFrames
+using SparseArrays, LinearAlgebra, Random, Distributions, Revise, ThreadsX, DataFrames, Optim
 include("optim-functions.jl")
 
 function fcn_meshgrid(x, y)
@@ -91,7 +91,7 @@ function fcn_spatial_shock(W, S::Integer, n_shocks::Int, shock_size; p=ones(size
                 continue
             end
 
-            w = vec(W[:, i])
+            w = vec(W[:, shock_loc[i]])
             subset_index = w .> 0
             neighbour_index = (1:length(w))[subset_index]
             wv = w[subset_index]
@@ -105,7 +105,7 @@ function fcn_spatial_shock(W, S::Integer, n_shocks::Int, shock_size; p=ones(size
     return V, NSS, sl
 end
 
-function fcn_spatial_shock_gev(W, S::Integer; p=1 / size(W, 1), dist=Distributions.TDist(3), T::Integer=100)
+function fcn_spatial_shock_gev(W, S::Integer, XR=rand(size(W, 1)); p=1 / size(W, 1), dist=Distributions.TDist(3), T::Integer=100)
     N = size(W, 1)
     V = zeros(N, S)
     NSS = zeros(S)
@@ -118,23 +118,23 @@ function fcn_spatial_shock_gev(W, S::Integer; p=1 / size(W, 1), dist=Distributio
         # Draw using a uniform distribution of independent draws with underlying probability
         ζ = rand(dist, T)
         nss = sum(ζ .> threshold)
-        shock_loc = randperm(N)[1:nss]
+        if (nss <= 1)
+            continue
+        end
+
+        shock_loc = wsample(1:N, XR, nss; replace=false)
         shock_size = Int.(ceil.(((p > 0 ? -log(p) : 1) * (N / 200)) * (ζ[ζ.>threshold] .- threshold))) # Shock size relative to total landscape size
+        shock_size[shock_size.>N/2] .= Int(N / 2) # Restrict shocks to be less than half of the cells
+        V[shock_loc, s] .= 1
 
         for i = 1:nss
             sss = min(shock_size[i], size(W, 1) - 1) # Sample shock size from distribution
-            if (sss == 0)
-                continue
-            elseif (sss == 1)
-                V[shock_loc[i], s] = 1
-                continue
-            end
-
             w = vec(W[:, shock_loc[i]])
             subset_index = w .> 0
             neighbour_index = (1:length(w))[subset_index]
             wv = w[subset_index]
             shock_cells = wsample(neighbour_index, wv, sss - 1; replace=false)
+            #shock_cells = sortperm(w; rev=true)[1:(sss-1)]
             V[shock_cells, s] .= 1
         end
 
@@ -150,7 +150,7 @@ function fcn_reshape_lds(D, dims)
     return reshape(D, dims_round)
 end
 
-function fcn_generate_landscape(dims=(40, 40); S=(prod(dims) + 1) * 5, yy=0, ρ=rand() * 0.99, σ=rand(Chisq(10)), η=1 / prod(dims))
+function fcn_generate_landscape(dims=(40, 40); S=(prod(dims) + 1), yy=0, ρ=rand() * 0.99, σ=rand(Chisq(10)), η=1 / prod(dims), shocks=(true, true))
     # Generates a (n1 x n2) grid cells of landscape describing benefits of protecting each cell, with random shocks that wipe out returns in a given set of cells under every scenario.
 
     # dims: dimensions of the landscape grid
@@ -163,26 +163,41 @@ function fcn_generate_landscape(dims=(40, 40); S=(prod(dims) + 1) * 5, yy=0, ρ=
     #   Wp: spatially-autocorrelated "base" benefits
     #   SS: shock locations
     #   pw_rs: probability of shock (spatially-autocorrelated)
+    positive_shock, negative_shock = shocks
+
+    shock_value = yy
 
     W, P, b = fcn_spatial_weights(dims; boundary=1, distance=true, bandwidth=sqrt(sum(dims .^ 2)), α=2)
-    X = rand(Normal(0, 1), size(W, 1))
+    X = rand(Normal(50, 1), size(W, 1))
     Wp = fcn_spatial_AR(W, S; X=X, ρ=ρ, σ=σ)
     Wp = Wp[b.==0, :]
-    Wp[isless.(Wp, 0)] .= 0
-    Wp = Wp .+ yy
+    #Wp[isless.(Wp, 0)] .= 0
 
-    if (sum(Wp .< 0) > 0)
-        throw("Some elements in Wp are less than zero")
-    end
+    #if (sum(Wp .< 0) > 0)
+    #    throw("Some elements in Wp are less than zero")
+    #end
 
     #pw   = fcn_spatial_AR(W, 1; X = rand(size(W,1),1), ρ=0.5, σ=5) |> vec; # Probability of shock
     #pw   = pw[b .== 0,:];
     #pw[pw .< 0] .= 0;
     #pw   = pw ./ sum(pw);
     #SS, nss, sl   = fcn_spatial_shock(W[b .== 0, b .== 0], S, n_shocks, shock_size, p=vec(pw));
-    SS, nss = fcn_spatial_shock_gev(W[b.==0, b.==0], S; p=η)
+
+    #XR = Wp[:, rand(1:size(Wp, 2))]
+    XR = vec(mean(Wp, dims=2))
+    XR[XR.<0] .= 0
+    SS, nss = fcn_spatial_shock_gev(W[b.==0, b.==0], S, XR; p=η)
+
     Wps = copy(Wp)
-    Wps[isless.(1e-5, SS)] .= 0
+    if (positive_shock)
+        SSP, nssp = fcn_spatial_shock_gev(W[b.==0, b.==0], S, XR; p=η)
+        Wps[isless.(1e-2, SSP)] = Wps[isless.(1e-2, SSP)] .+ shock_value
+    end
+
+    if (negative_shock)
+        Wps[isless.(1e-2, SS)] .= -shock_value
+        Wps[isless.(Wps, -shock_value)] .= -shock_value
+    end
     #pw_rs = fcn_reshape_lds(pw, dims);
 
     return Landscape(dims, Wps, Wp, SS, W[b.==0, b.==0], nss)
@@ -192,7 +207,7 @@ function fcn_get_location_scale(R::Matrix, budget::Real=100, pct_range=(5, 95))
     # Returns the location and scale parameters used for scaling returns for the utility functions
     ev_soln = fcn_optim_ev(R; budget=budget)
     ev_returns = R' * ev_soln
-    location = percentile(ev_returns, pct_range[1])
+    location = mean(ev_returns)
     scale = percentile(ev_returns, pct_range[2]) - percentile(ev_returns, pct_range[1])
     return location, scale
 end
@@ -209,10 +224,11 @@ function fcn_get_w_random(R::Matrix, budget::Real=100, nsims::Real=100)
     return mean(R' * rand_soln)
 end
 
-function fcn_map_ef(R::Matrix, optim_func::Function, budget::Real=100, λ::AbstractVector=0:0.1:1, β::Real=0.9)
+function fcn_map_ef(R::Matrix, optim_func::Function, budget::Real=100, λ::AbstractVector=0:0.1:1, β::Real=0.9, w0::Real=0)
     # Maps a given function to identify the efficiency frontier across λ values
     solutions = map(l -> optim_func(-R; budget=budget, λ=l, β=β), λ) |> e -> mapreduce(permutedims, vcat, e) |> transpose
-    RS = R' * solutions
+
+    RS = w0 .+ R' * solutions
     ef = EfficiencyFrontier(solutions, RS, λ, optim_func)
     return ef
 end
@@ -220,4 +236,10 @@ end
 function fcn_evaluate_ef(ef::EfficiencyFrontier, u::UtilityFunction)
     # Evaluates solutions on the efficiency frontier based on the utility function
     return mapslices(u.CE, ef.returns; dims=1)
+end
+
+function fcn_max_lambda(u::UtilityFunction, R::Matrix, optim_func::Function, budget::Real=100, β::Real=0.9, w0::Real=0)
+    # Lambda that optimises CE
+    l = optimize(l -> -u.CE((1 / w0) .* (w0 .+ R' * optim_func(-R; budget=budget, λ=l, β=β))), 0.0, 1.0)
+    return Optim.minimizer(l)
 end

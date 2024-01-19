@@ -8,21 +8,34 @@ include("$(home_dir)/code/functions/sim-landscape-functions.jl")
 using CSV
 using Pipe
 
-function fcn_mc_sim(i, params::LandscapeParameters=LandscapeParameters((40, 40), 10, 0.7, 5, 0.0001, 100, 0.99); α=0:0.1:50, λ=0:0.1:1)
+function fcn_mc_sim(i, params::LandscapeParameters=LandscapeParameters((40, 40), 10, 0.7, 5, 0.0001, 100, 0.99, (false, true)); α=0:0.1:50, λ=0:0.1:1)
+
+
     budget = params.budget
-    L = fcn_generate_landscape(params.dims; yy=params.yy, ρ=params.ρ, σ=params.σ, η=params.η)
+    w0 = params.budget .* params.yy + 1 # Initial wealth
+    L = fcn_generate_landscape(params.dims; yy=params.yy, ρ=params.ρ, σ=params.σ, η=params.η, shocks=params.shocks)
+
+    # Define utility functions
+    uf_type = "CRRA"
+    utility_functions = map(a -> UtilityFunction(uf_type, a, -w0, w0), α)
+
+    # Solve
     ev_soln = fcn_optim_ev(-L.R; budget=budget)
     ev_rv_soln = fcn_optim_ev(-L.RV; budget=budget)
-    ev_ef = EfficiencyFrontier(ev_soln, L.R' * ev_soln, [0], fcn_optim_ev)
-    ev_rv_ef = EfficiencyFrontier(ev_rv_soln, L.R' * ev_rv_soln, [0], fcn_optim_ev)
-    cvar_ef = fcn_map_ef(L.R, fcn_optim_cvar, budget, λ, params.β)
-    mstd_ef = fcn_map_ef(L.R, fcn_optim_mstd, budget, λ, 0)
+    ev_ef = EfficiencyFrontier(ev_soln, w0 .+ L.R' * ev_soln, [0], fcn_optim_ev)
+    ev_rv_ef = EfficiencyFrontier(ev_rv_soln, w0 .+ L.R' * ev_rv_soln, [0], fcn_optim_ev)
+
+    # Find optimal lambda for each problem
+    #λ_cvar = map(u -> fcn_max_lambda(u, L.R, fcn_optim_cvar, params.budget, params.β, w0), utility_functions)
+    #λ_mstd = map(u -> fcn_max_lambda(u, L.R, fcn_optim_mstd, params.budget, 0, w0), utility_functions)
+
+    cvar_ef = fcn_map_ef(L.R, fcn_optim_cvar, budget, λ, params.β, w0)
+    mstd_ef = fcn_map_ef(L.R, fcn_optim_mstd, budget, λ, 0, w0)
     ef = Result(ev_ef, ev_rv_ef, cvar_ef, mstd_ef)
 
-    uf_type = "CRRA"
-    #location, scale = fcn_get_location_scale(L.R)
-    w = mean(L.R' * ev_soln)
-    utility_functions = map(a -> UtilityFunction(uf_type, a, 0, w), α)
+    #location, scale = fcn_get_location_scale(L.R, params.budget, (0, 100))
+    #w = mean(L.R' * ev_soln)
+
     ev_rv_ce = map(u -> fcn_evaluate_ef(ev_rv_ef, u), utility_functions)
     ev_ce = map(u -> fcn_evaluate_ef(ev_ef, u), utility_functions)
     cvar_ce = map(u -> fcn_evaluate_ef(cvar_ef, u), utility_functions)

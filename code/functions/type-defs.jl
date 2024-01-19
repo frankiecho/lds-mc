@@ -31,14 +31,14 @@ struct UtilityFunction
             U = (w) -> (w |> fcn_scale |> w -> CARA(w, α))
             inv = (w) -> CARA_inv(w, α) |> fcn_scale_inv
         elseif cmp(type, "CRRA") == 0
-            U = (w) -> CRRA_norm(fcn_scale(w) .+ 1, α)
-            inv = (w) -> fcn_scale_inv(CRRA_inv_norm(w, α)) .- 1
+            U = (w) -> CRRA(fcn_scale(w), α)
+            inv = (w) -> fcn_scale_inv(CRRA_inv(w, α))
         else
             U = (w) -> piecewise_linear(w |> fcn_scale, 0.0, α, 1.0)
             inv = (w) -> w |> fcn_scale_inv
         end
         eu = (w) -> EU(w, U)
-        ce = (w) -> EU(w, U) |> inv
+        ce = (w) -> inv(EU(w, U))
         return new(type, α, location, scale, U, inv, eu, ce)
     end
 end
@@ -72,4 +72,5 @@ mutable struct LandscapeParameters
     η::Real # risk threshold
     budget::Real # Budget
     β::Real
+    shocks::Tuple
 end

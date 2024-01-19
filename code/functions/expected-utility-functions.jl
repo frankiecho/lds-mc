@@ -17,11 +17,11 @@ function CRRA(w, θ=1.0)
 end
 
 function CRRA_norm(w, θ=1.0, a=2.0, b=1.0)
-    return (CRRA(w, θ) - CRRA(b, θ)) ./ (CRRA(a, θ) - CRRA(b, θ))
+    return (CRRA(w, θ) .- CRRA(b, θ)) ./ (CRRA(a, θ) .- CRRA(b, θ))
 end
 
 function CRRA_inv(u, θ=1.0)
-    w = θ == 1 ? exp.(u) : ((1 - θ) .* u) .^ (1 ./ (1 - θ))
+    w = θ == 1.0 ? exp.(u) : ((1 - θ) .* u) .^ (1 ./ (1 - θ))
     return w
 end
 

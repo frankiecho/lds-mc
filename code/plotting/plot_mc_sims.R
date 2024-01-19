@@ -8,12 +8,13 @@ param_table <- read_csv(sprintf("output/param_df_%s.csv", nsims)) %>%
   mutate(η = as.character(η))
 param_table <- param_table[1:(nrow(param_table)),] %>%
   mutate(N = ifelse(dims=='(10, 10)', 100, ifelse(dims=='(30, 30)', 900, 400)))
-param_table <- param_table[1:26,]
-param_table$run <- 1:nrow(param_table)
+vec <- 1:22
+param_table <- param_table[vec,]
+param_table$run <- vec
 
-runs = 1:nrow(param_table)
-alpha_vec <- c(0, 5, 10)
-alpha_lab <- c(`0` = 'θ=0', `10` = 'θ=10', `20` = 'θ=20')
+runs = param_table$run
+alpha_vec <- c(2,5,30)
+alpha_lab <- c(`2` = 'θ=2', `5` = 'θ=5', `30` = 'θ=30')
 
 ce_df <- lapply(runs, \(i) read_csv(paste0("output/ce_df_param_search_", i, "_", nsims, ".csv"), show_col_types = F)) %>%
   lapply(\(x) filter(x, alpha %in% alpha_vec)) %>%
@@ -45,7 +46,7 @@ fcn_generate_mc_lineplots <- function(variable, axis_title = NULL, hide_y = TRUE
     scale_y_continuous("CE change from EV", labels = scales::percent) +
     ggsci::scale_color_nejm() +
     #scale_color_manual(values = c('#333333',"#0072B5FF",'#BC3C29FF')) +
-    facet_wrap(vars(alpha), strip.position="top", ncol = 1, labeller = labeller(alpha = alpha_lab)) +
+    facet_wrap(vars(alpha), strip.position="top", ncol = 1, labeller = labeller(alpha = alpha_lab), scales = 'free_y') +
     theme_bw() +
     labs(x = axis_title) +
     theme(panel.grid = element_blank(),legend.title = element_blank())
@@ -55,7 +56,7 @@ fcn_generate_mc_lineplots <- function(variable, axis_title = NULL, hide_y = TRUE
   return(p)
 }
 
-plt <- fcn_generate_mc_lineplots('ρ', hide_y = F) + fcn_generate_mc_lineplots('σ') +fcn_generate_mc_lineplots('η', 'π') +fcn_generate_mc_lineplots('yy', 'υ') +fcn_generate_mc_lineplots('budget', 'B') + fcn_generate_mc_lineplots('N') + fcn_generate_mc_lineplots('β') +
+plt <- fcn_generate_mc_lineplots('ρ', hide_y = F) + fcn_generate_mc_lineplots('σ') +fcn_generate_mc_lineplots('η', 'π') +fcn_generate_mc_lineplots('yy', 'υ') + fcn_generate_mc_lineplots('β') +
   plot_layout(nrow = 1, guides = 'collect')
 
 ggsave('plots/mc_sim_plot_ev.png', plt, scale = 2, width = 2000, height = 1000, units = 'px')
