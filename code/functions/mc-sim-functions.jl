@@ -1,5 +1,5 @@
-home_dir = "/users/frankiecho/Documents/Github/lds-mc"
-#home_dir = "d:/Github/lds-mc"
+#home_dir = "/users/frankiecho/Documents/Github/lds-mc"
+home_dir = "d:/Github/lds-mc"
 include("$(home_dir)/code/functions/type-defs.jl")
 include("$(home_dir)/code/functions/optim-functions.jl");
 include("$(home_dir)/code/functions/expected-utility-functions.jl")
@@ -8,11 +8,11 @@ include("$(home_dir)/code/functions/sim-landscape-functions.jl")
 using CSV
 using Pipe
 
-function fcn_mc_sim(i, params::LandscapeParameters=LandscapeParameters((40, 40), 10, 0.7, 5, 0.0001, 100, 0.99, (false, true)); α=0:0.1:50, λ=0:0.1:1)
-
-
+function fcn_mc_sim(i, params::LandscapeParameters=LandscapeParameters((40, 40), 10, 0.7, 5, 0.0001, 100, 0.99, (false, true), 0:0.1:1); α=0:0.1:50)
+    w0 = params.budget * params.yy + 1
     budget = params.budget
-    L = fcn_generate_landscape(params.dims; yy=params.yy, ρ=params.ρ, σ=params.σ, η=params.η)
+    λ = params.λ
+    L = fcn_generate_landscape(params.dims; yy=params.yy, ρ=params.ρ, σ=params.σ, η=params.η, shocks=params.shocks)
     ev_soln = fcn_optim_ev(-L.R; budget=budget)
     ev_rv_soln = fcn_optim_ev(-L.RV; budget=budget)
     ev_ef = EfficiencyFrontier(ev_soln, w0 .+ L.R' * ev_soln, [0], fcn_optim_ev)
@@ -66,6 +66,25 @@ function fcn_write_result(result::AbstractArray, suffix=""; α=0:0.1:50)
     result_df.var = vcat(repeat(["median"], length(α)), repeat(["lb"], length(α)), repeat(["ub"], length(α)), repeat(["min"], length(α)), repeat(["max"], length(α)))
     result_df.alpha = repeat(α, 5)
     CSV.write("$(home_dir)/output/ce_df_$(suffix)_$(Q[end]).csv", result_df)
+end
+
+function fcn_write_lambda(result::AbstractArray, suffix=""; α=0:0.1:50, λ=0:0.1:1)
+    Q = 1:length(result)
+    cvar_lambda = hcat([map(e -> λ[argmax(e)[2]], res.ce.cvar) for res in result]...)
+    mstd_lambda = hcat([map(e -> λ[argmax(e)[2]], res.ce.mstd) for res in result]...)
+    cvar_lambda_mean = mapslices(xx -> percentile(xx, 50), cvar_lambda, dims=2)
+    cvar_lambda_lb = mapslices(xx -> percentile(xx, 5), cvar_lambda, dims=2)
+    cvar_lambda_ub = mapslices(xx -> percentile(xx, 95), cvar_lambda, dims=2)
+
+    mstd_lambda_mean = mapslices(xx -> percentile(xx, 50), mstd_lambda, dims=2)
+    mstd_lambda_lb = mapslices(xx -> percentile(xx, 5), mstd_lambda, dims=2)
+    mstd_lambda_ub = mapslices(xx -> percentile(xx, 95), mstd_lambda, dims=2)
+
+    cols = [:cvar_mean, :cvar_lb, :cvar_ub, :mstd_mean, :mstd_lb, :mstd_ub]
+    result_df = DataFrame(hcat(cvar_lambda_mean, cvar_lambda_lb, cvar_lambda_ub, mstd_lambda_mean, mstd_lambda_lb, mstd_lambda_ub), :auto)
+    rename!(result_df, cols)
+    result_df.alpha = α
+    CSV.write("$(home_dir)/output/lambda_df_$(suffix)_$(Q[end]).csv", result_df)
 end
 
 function fcn_write_shock_exposure(result::AbstractArray, suffix="", threshold=50:2:100, Q=1:5)

@@ -73,4 +73,5 @@ mutable struct LandscapeParameters
     budget::Real # Budget
     β::Real
     shocks::Tuple
+    λ::AbstractVector
 end

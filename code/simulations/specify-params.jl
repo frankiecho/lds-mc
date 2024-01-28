@@ -3,18 +3,26 @@ using CSV, Setfield
 include("../../code/functions/type-defs.jl")
 
 # Default parameters
-param_default = LandscapeParameters((20, 20), 1000, 0.8, 6, 0.01, 20, 0.99, (false, true))
+param_default = LandscapeParameters((20, 20), 1000, 0.8, 6, 0.01, 100, 0.99, (false, true), 0:0.01:1)
 param_vec = [param_default]
 nsims = 5
 
 # Vectors to test
-dims_vec = [(10, 10), (30, 30)]
-budget_vec = [100]
+dims_vec = []
+budget_vec = []
 yy_vec = []
 ρ_vec = [0, 0.2, 0.4, 0.6]
 σ_vec = [2, 4, 8, 10]
 η_vec = [0.1, 0.05, 0.001, 0.0001, 0.00001, 0] 
 β_vec = [0.5, 0.7, 0.9, 0.95]
+shock_vec = [(true, true)]
+λ_vec = [[1], [0.75], [0.5], [0.25]]
+
+for shock in shock_vec
+    local param_t = deepcopy(param_default)
+    param_t.shocks = shock
+    push!(param_vec, param_t)
+end
 
 for budget in budget_vec
     local param_t = deepcopy(param_default)
@@ -58,5 +66,11 @@ for β in β_vec
     push!(param_vec, param_t)
 end
 
+for λ in λ_vec
+    local param_t = deepcopy(param_default)
+    param_t.λ = λ
+    push!(param_vec, param_t)
+end
+
 param_df = DataFrame(param_vec)
-#CSV.write("../output/param_df_$(nsims).csv", param_df)
+CSV.write("output/param_df_$(nsims).csv", param_df)

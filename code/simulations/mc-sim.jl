@@ -15,13 +15,15 @@ using Gurobi
     include("../../code/simulations/specify-params.jl")
     include("../../code/functions/mc-sim-functions.jl")
     Q = 1:length(param_vec);
+    #Q = [1]
     
     function fcn_mc_sim_i(i)
         println("Starting run $(i)")
-        α = [0, 2, 10, 30]
-        λ = 0:0.1:1
-        result = map((ii) -> fcn_mc_sim(ii, param_vec[i]; λ = λ, α=α), 1:nsims);
+        α = 0:1:50
+        λ = 0:0.01:1
+        result = map((ii) -> fcn_mc_sim(ii, param_vec[i]; α=α), 1:nsims);
         fcn_write_result(result, "param_search_$(i)"; α=α);
+        fcn_write_lambda(result, "param_search_$(i)"; α=α, λ=param_vec[i].λ)
         fcn_write_downside(result, "param_search_$(i)", α);
         fcn_write_contiguity(result, "param_search_$(i)",  true, α);
         println("Completed run $(i)")
